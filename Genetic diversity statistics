@@ -1,1 +1,36 @@
+#Calculate population genomics statistics
+#Nucleotide diversity
+#Tajima D
+#Fst
+#LD decay
+#reccomend using LD pruned file to reduce file size and calculations
+#adjust window sizes, steps accordingly
 
+#!/bin/bash
+module load bcftools
+
+#1. nucleotide diversity
+#use the filtered vcf files containing only samples to be calculated
+mkdir /nucleotide_diversity
+cd /nucleotide_diversity
+vcftools --vcf $input.vcf --window-pi 100000 --out $nucleotide_diversity.results #window size 100kb
+
+#2. tajima D
+#use the filtered vcf files containing only samples to be calculated
+mkdir /tajima_d
+cd /tajima_d
+vcftools --vcf $input.vcf --TajimaD 100000 --out $tajima_d.results #window size 100kb
+
+#3. Fst
+#use the main vcf files, and txt files with sample lists for calculating pairwise fst between groups
+mkdir /fst
+cd /fst
+vcftools --vcf $input.vcf --weir-fst-pop $group1_sample_names.txt --weir-fst-pop $group2_sample_names.txt --fst-window-size 100000 --fst-window-step 1000 --out Fst.results #window size 100kb
+
+#4d. LD Decay
+#use the filtered vcf files containing only samples to be calculated
+#download POPLDdecay https://github.com/BGI-shenzhen/PopLDdecay.git
+cd /home/users/nus/aleemj/scratch/adrian_et_al_2024_arugula_ref_genome/Arugula_genotype
+mkdir /lddecay
+cd lddecay
+PopLDdecay -InVCF $input.vcf -OutStat $output.result -SubPop sample_names.txt

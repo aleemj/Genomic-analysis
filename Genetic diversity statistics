@@ -27,7 +27,7 @@ mkdir /fst
 cd /fst
 vcftools --vcf $input.vcf --weir-fst-pop $group1_sample_names.txt --weir-fst-pop $group2_sample_names.txt --fst-window-size 100000 --fst-window-step 1000 --out Fst.results #window size 100kb
 
-#4d. LD Decay
+#4. LD Decay
 #use the filtered vcf files containing only samples to be calculated
 #download POPLDdecay https://github.com/BGI-shenzhen/PopLDdecay.git
 cd /home/users/nus/aleemj/scratch/adrian_et_al_2024_arugula_ref_genome/Arugula_genotype

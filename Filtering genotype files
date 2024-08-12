@@ -1,0 +1,7 @@
+#!/bin/bash
+
+#filter genoytpe file according to a list of samples
+#create a txt with list of samples to be filtered, one in each line
+
+module load bcftools
+bcftools view --samples-file $samples_to_keep.txt $input.vcf > $output.vcf

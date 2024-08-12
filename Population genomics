@@ -9,3 +9,4 @@ do admixture --cv $input.bed $K | tee log${K}.out; done
 grep -h CV log*.out
 
 #Plot using ggplot in R
+#link to R code

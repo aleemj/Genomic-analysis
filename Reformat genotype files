@@ -1,0 +1,21 @@
+#Code used to reformat genotype files
+#PED, MAP
+#BED, BIM, FAM
+#VCF
+
+#VCF to BED file
+plink --vcf $input.vcf --keep-allele-order --allow-extra-chr --allow-no-sex --double-id --make-bed --out $output
+
+#BED TO PED FILE
+plink --bfile $input --keep-allele-order --allow-extra-chr --allow-no-sex --double-id --recode --tab --out $output
+
+#PED TO BED FILE
+plink --file $input --make-bed --out 
+plink --file 50_samples --keep-allele-order --allow-extra-chr --allow-no-sex --double-id --make-bed --out $output
+
+#Possible error: 
+Error: Invalid chromosome code '27' on line 20662973 of .vcf file.
+(This is disallowed for humans.  Check if the problem is with your data, or if
+you forgot to define a different chromosome set with e.g. --chr-set.)
+#Possible solution: Add flag with number of chromosomes specified
+--chr-set 46

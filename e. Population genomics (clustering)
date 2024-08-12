@@ -11,9 +11,38 @@ grep -h CV log*.out
 #Plot using ggplot in R
 #link to R code
 
+################################################################
+
 #PCA clustering https://www.cog-genomics.org/plink/1.9/strat 
 plink --bfile $input.bed --pca --out pca_results
 
 #Plot using ggplot in R
 #link to R code
+
+################################################################
+
+#Phylogenetic tree
+#download https://github.com/BGI-shenzhen/VCF2Dis.git
+
+mkdir /phylogenetics
+cd /Phylogenetics
+
+module load r/4.2.0
+
+VCF2Dis-1.51/bin/VCF2Dis -InPut $input.vcf -OutPut $results_p_dis.mat
+
+#Plot in Figtree, check if have NWT file output, otherwise, use the following R code to generate:
+
+if(!require(ape)) install.packages("ape")
+library(ape)
+# read data from file 
+matrix_data <- read.table("results_p_dis.mat", header=F, row.names=1,skip=1)
+dist_matrix <- as.dist(as.matrix(matrix_data))
+# Construct a tree using UPGMA/NJ method
+# tree <-  as.phylo(hclust(dist_matrix, method = "average"))   # your can try UPGMA
+tree <- nj(dist_matrix)
+# print tree
+#pdf("treeA.pdf") ;print(tree); dev.off();
+# save the tree to Newick format file
+write.tree(tree, file="output_tree.nwk") 
 

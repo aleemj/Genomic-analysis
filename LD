@@ -1,1 +1,4 @@
+#to prune a vcf file according to LD (greatly reduces file size)
+module load bcftools
+bcftools +prune -m 0.5 -w 1000 $input.vcf -Ov -o $output.vcf #prunes at r2=0.5, window size 1000 - default
 

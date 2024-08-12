@@ -10,3 +10,10 @@ grep -h CV log*.out
 
 #Plot using ggplot in R
 #link to R code
+
+#PCA clustering https://www.cog-genomics.org/plink/1.9/strat 
+plink --bfile $input.bed --pca --out pca_results
+
+#Plot using ggplot in R
+#link to R code
+

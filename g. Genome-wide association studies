@@ -22,12 +22,13 @@ gemma -bfile $input -k $relatedness_matrix -c $covariate(optional)-lmm 3 -n 1 -o
 #6. Fit a Bayesian Sparse Linear Mixed Model
 gemma -bfile $input  -bslmm [num] -o $output
 
-#7. 
-
-
 #Notes:
 #where "lm [num]" specifies which test to use: “-lm 1” performs Wald test, “-lm 2” performs likelihood ratio test, “-lm 3” performs score test, and “-lm 4” performs all the three tests.
 #where "gk [num]" specifies which matrix to calculate: “-gk 1” calculates the centered relatedness matrix while “-gk 2” calculates the standardized relatedness matrix.
 #where “-k [filename]” could be replaced by “-d [filename]” and “-u [filename]”, where “- d [filename]” specifies the eigen value file and “-u [filename]” specifies the eigen vector file.
 #where "-n [num]" specifies the columns to use as the phenotypes, where multiple phenotypes are present one can use "-n [num1] [num2] [num3]", keep to less than 10 phenotypes
 #where “-bslmm [num]” option specifies which model to fit, i.e. “-bslmm 1” fits a stan- dard linear BSLMM, “-bslmm 2” fits a ridge regression/GBLUP, and “-bslmm 3” fits a probit BSLMM
+
+#Errors:
+#ERROR: Enforce failed for number of analyzed individuals equals 0. in src/param.cpp at line 2073 in ProcessCvtPhen
+#Solution: ensure .fam file has phenotype column filled in - "-9" or "NA" will result in this error.

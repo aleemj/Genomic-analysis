@@ -17,7 +17,7 @@ gemma -bfile $input -k $relatedness_matrix -eigen -o $output
 gemma -bfile $input -k $relatedness_matrix -c $covariate(optional) -lmm 3 -o $output
 
 #5. Association Tests with Multivariate Linear Mixed Models
-gemma -bfile $input -k $relatedness_matrix -c $covariate(optional)-lmm 3 -n 1 -o $output
+gemma -bfile $input -k $relatedness_matrix -c $covariate(optional) -lmm 3 -n 1 -o $output
 
 #6. Fit a Bayesian Sparse Linear Mixed Model
 gemma -bfile $input  -bslmm [num] -o $output

@@ -32,3 +32,10 @@ gemma -bfile $input  -bslmm [num] -o $output
 #Errors:
 #ERROR: Enforce failed for number of analyzed individuals equals 0. in src/param.cpp at line 2073 in ProcessCvtPhen
 #Solution: ensure .fam file has phenotype column filled in - "-9" or "NA" will result in this error.
+
+####################################
+
+#Plot using R using qqman package https://cran.r-project.org/web/packages/qqman/index.html
+
+To include R code for plotting
+

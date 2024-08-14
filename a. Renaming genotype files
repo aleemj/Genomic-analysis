@@ -1,11 +1,11 @@
 #!/bin/bash
 module load bcftools
 
-#to change chromosome names
+#1. to change chromosome names
 bcftools query -f '%CHROM\n' $input.vcf # to print sample names
 sed -i "s/scaffold_/g" $input.vcf #removes "scaffold_" from chromosome names
 
-#to change sample names
+#2. to change sample names
 bcftools query -l $input.vcf # to print sample names
 #create file with old sample names in one column, new sample names in another, separated by tab or whitespace 
 bcftools reheader -s $sample_names.txt $input.vcf -o $output.vcf

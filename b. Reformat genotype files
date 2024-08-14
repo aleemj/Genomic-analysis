@@ -13,7 +13,7 @@ plink --bfile $input --keep-allele-order --allow-extra-chr --allow-no-sex --doub
 plink --file $input --make-bed --out 
 plink --file 50_samples --keep-allele-order --allow-extra-chr --allow-no-sex --double-id --make-bed --out $output
 
-#Possible error: 
+#Errors: 
 #Error 1: Invalid chromosome code '27' on line 20662973 of .vcf file.
 (This is disallowed for humans.  Check if the problem is with your data, or if
 you forgot to define a different chromosome set with e.g. --chr-set.)

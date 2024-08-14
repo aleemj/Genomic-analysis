@@ -31,6 +31,7 @@ gemma -bfile $input  -bslmm [num] -o $output
 #3. where “-k [filename]” could be replaced by “-d [filename]” and “-u [filename]”, where “- d [filename]” specifies the eigen value file and “-u [filename]” specifies the eigen vector file.
 #4. where "-n [num]" specifies the columns to use as the phenotypes, where multiple phenotypes are present one can use "-n [num1] [num2] [num3]", keep to less than 10 phenotypes
 #5. where “-bslmm [num]” option specifies which model to fit, i.e. “-bslmm 1” fits a stan- dard linear BSLMM, “-bslmm 2” fits a ridge regression/GBLUP, and “-bslmm 3” fits a probit BSLMM
+#6. where "-c $covariate(optional)", covatiate file is a txt file with n rows (number of samples) and n cols number of PCs). Extracted from eigenvectors of PCA. 
 
 #Errors:
 #Error 1: Enforce failed for number of analyzed individuals equals 0. in src/param.cpp at line 2073 in ProcessCvtPhen

@@ -22,7 +22,7 @@ grep -h CV log*.out
 plink --bfile $input.bed --keep-allele-order --allow-extra-chr --allow-no-sex --double-id --chr-set 46 --pca --out pca_results
 
 #Errors:
-#Refer to b. Reformat genotype files #Error. 4
+#Refer to b. Reformat genotype files #Error 1.
 
 #Plot using ggplot in R
 #link to R code

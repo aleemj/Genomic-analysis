@@ -3,13 +3,13 @@
 #BED, BIM, FAM
 #VCF
 
-#VCF to BED file
+#1. VCF to BED file
 plink --vcf $input.vcf --keep-allele-order --allow-extra-chr --allow-no-sex --double-id --make-bed --out $output
 
-#BED TO PED FILE
+#2. BED TO PED FILE
 plink --bfile $input --keep-allele-order --allow-extra-chr --allow-no-sex --double-id --recode --tab --out $output
 
-#PED TO BED FILE
+#3. PED TO BED FILE
 plink --file $input --make-bed --out 
 plink --file 50_samples --keep-allele-order --allow-extra-chr --allow-no-sex --double-id --make-bed --out $output
 

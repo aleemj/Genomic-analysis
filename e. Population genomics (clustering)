@@ -19,7 +19,7 @@ grep -h CV log*.out
 #2. PCA clustering 
 #https://www.cog-genomics.org/plink/1.9/strat 
 
-plink --bfile $input.bed --pca --out pca_results
+plink --bfile $input.bed --keep-allele-order --allow-extra-chr --allow-no-sex --double-id --chr-set 46 --pca --out pca_results
 
 #Plot using ggplot in R
 #link to R code

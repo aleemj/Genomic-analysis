@@ -1,1 +1,166 @@
+#Perform genomic selection for traits 
+#extracted from https://github.com/MarcooLopez/Genomic-Selection/blob/master/single_environment.md
 
+#Genomic relatedness matrix can be extracted from g. Genome-wide association studies #2. Estimate relatedness matrix
+
+#!R
+# Clean the working environment
+rm(list = ls())
+
+# Load libraries
+library(BGLR)
+library(rrBLUP)
+library(dplyr)
+library(data.table)
+
+#==================================================
+#Preparation of data
+#==================================================
+
+# Set working directory to location of input files
+setwd("$input_file_path")
+
+# Load genotype data
+X = data.frame(fread("GAPIT.Genotype.Numerical.txt"))
+# Make the "taxa" column the row names
+rownames(X) <- X$taxa
+# Remove the "taxa" column from the dataframe
+X <- X[, -1]
+
+# Load phenotype data
+Y <- read.csv("arugula_planteye.csv", head = TRUE)
+# Make the "sample_ID" column the row names
+rownames(Y) <- Y$sample_ID
+# Remove the "sample_ID" column from the dataframe
+Y <- Y[, -1]
+
+# Desired traits
+traits <- c("Digital_biomass")
+# Select the filtered columns from Y
+Y <- Y[, traits, drop = FALSE]
+
+# Format all data 
+y <- Y[, 1]
+
+# Remove columns with zero standard deviation - otherwise introduce NAs into matrix
+sd_values <- apply(X, 2, sd)
+X <- X[, sd_values > 0]
+
+# Genomic relationship matrix
+M <- scale(X)
+G <- tcrossprod(M) / ncol(M)  # Calculate the covariance matrix of genetic effects based on marker data
+
+# Design matrix for individuals
+GID <- factor(rownames(Y), levels = rownames(Y))
+Zg <- model.matrix(~ GID - 1)
+
+#==================================================
+#The below code is to extract model parameters and normally not needed
+#==================================================
+#set.seed(123)
+
+# Matrix to store results. It will save the main parameters for each model
+#outVAR <- matrix(NA, nrow = 6, ncol = 5)
+#dimnames(outVAR) <- list(c("varU", "varE", "lambda", "dfb", "Sb", "H2"), c("GBLUP1", "GBLUP2", "BRR", "LASSO", "BayesB"))
+
+# Number of iterations and burn-in for Bayesian models
+#nIter <- 1200
+#burnIn <- 200
+
+# G-BLUP model using 'rrBLUP' package
+#fm <- mixed.solve(y=y,Z=Zg,K=G) 
+#outVAR[1,1] <- fm$Vu
+#outVAR[2,1] <- fm$Ve
+#outVAR[6,1] <- fm$Vu/(fm$Vu+fm$Ve)  # Heritability
+
+# G-BLUP model using 'BGLR' package. Model RKHS with K=G
+#fm <- BGLR(y,ETA=list(list(K=G,model="RKHS")),nIter=nIter,burnIn=burnIn)
+#outVAR[1,2] <- fm$ETA[[1]]$varU
+#outVAR[2,2] <- fm$varE
+#outVAR[6,2] <- outVAR[1,2]/(outVAR[1,2] + outVAR[2,2])  # Heritability
+
+# Bayesian Ridge Regression (BRR) using 'BGLR' package
+#fm <- BGLR(y,ETA=list(list(X=M,model="BRR")),nIter=nIter,burnIn=burnIn)
+#outVAR[1,3] <- fm$ETA[[1]]$varB * ncol(M)  # Multiply by p to obtain the right varU as in G-BLUP
+#outVAR[2,3] <- fm$varE
+#outVAR[6,3] <- outVAR[1,3]/(outVAR[1,3] + outVAR[2,3])  # Heritability
+
+# Bayesian LASSO model using 'BGLR' package
+#fm <- BGLR(y,ETA=list(list(X=M,model="BL")),nIter=nIter,burnIn=burnIn)
+#outVAR[2,4] <- fm$varE
+#outVAR[3,4] <- fm$ETA[[1]]$lambda
+
+# Bayes B model using 'BGLR' package
+#fm <- BGLR(y,ETA=list(list(X=M,model="BayesB")),nIter=nIter,burnIn=burnIn)
+#outVAR[2,5] <- fm$varE
+#outVAR[4,5] <- fm$ETA[[1]]$df0
+#outVAR[5,5] <- fm$ETA[[1]]$S0
+
+#print(outVAR)
+
+#==================================================
+# Comparative Genomic selection using different models
+#==================================================
+
+#set WD for storage of results
+setwd("$output_files_path")
+
+# Models
+models <- c("GBLUP", "BRR", "LASSO", "BayesB")
+
+# Choose which models. 1:GBLUP; 2:BRR; 3:LASSO; 4:BayesB
+MODELS <- c(1, 2, 3, 4)
+
+# Percentage of the data assigned to Testing set
+percTST <- 0.3
+
+# Number of replicates
+m <- 5
+#==================================================
+
+for (mod in MODELS) {
+  # Creation of seed for repeated randomizations
+  set.seed(123)
+  seeds <- round(seq(1E3, 1E6, length = m))
+  
+  # Matrix to store results. It will save the correlation for each partition
+  outCOR <- matrix(NA, nrow = m, ncol = 1)
+  colnames(outCOR) <- models[mod]
+  
+  # Number of iterations and burn-in for Bayesian models
+  nIter <- 1200
+  burnIn <- 200
+  
+  model <- models[mod]
+  nTST <- round(percTST * nrow(Y))
+  
+  for (k in 1:m) {  # Loop for the replicates
+    set.seed(seeds[k])
+    indexTST <- sample(1:nrow(Y), size = nTST, replace = FALSE)
+    yNA <- y
+    yNA[indexTST] <- NA
+    
+    if (model == "GBLUP")  ETA <- list(list(K = G, model = "RKHS"))
+    if (model == "BRR")    ETA <- list(list(X = M, model = "BRR"))
+    if (model == "LASSO")  ETA <- list(list(X = M, model = "BL"))
+    if (model == "BayesB") ETA <- list(list(X = M, model = "BayesB"))
+    
+    fm <- BGLR(yNA, ETA = ETA, nIter = nIter, burnIn = burnIn)
+    outCOR[k, 1] <- cor(fm$yHat[indexTST], y[indexTST])
+  }
+  
+  # Save results
+  save(outCOR, file = paste0("outCOR_", model, ".RData"))
+}
+
+OUT <- c()
+for (mod in seq_along(models)) {
+  filename <- paste0("outCOR_", models[mod], ".RData")    
+  if (file.exists(filename)) {
+    load(filename, verbose = TRUE)
+    OUT <- cbind(OUT, outCOR)
+  }    
+}
+
+round(rbind(Mean = apply(OUT, 2, mean), SD = apply(OUT, 2, sd)), 4)
+boxplot(OUT, ylab = "Accuracy", xlab = "Model", main = "GS model comparison of digital biomass prediction accuracy across 5 iterations.")

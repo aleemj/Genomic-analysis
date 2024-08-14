@@ -1,4 +1,4 @@
-#ADMIXTURE 
+#1. ADMIXTURE 
 #install admixture into directory https://dalexander.github.io/admixture/ 
 
 #run multiple k value to find lowest error
@@ -11,9 +11,14 @@ grep -h CV log*.out
 #Plot using ggplot in R
 #link to R code
 
+#Notes:
+#1. For multi-threading: append the flag -jN, where N is the thread number, ncpus must be adjusted accordingly to allow for multithreading.
+
 ################################################################
 
-#PCA clustering https://www.cog-genomics.org/plink/1.9/strat 
+#2. PCA clustering 
+#https://www.cog-genomics.org/plink/1.9/strat 
+
 plink --bfile $input.bed --pca --out pca_results
 
 #Plot using ggplot in R
@@ -21,7 +26,7 @@ plink --bfile $input.bed --pca --out pca_results
 
 ################################################################
 
-#Phylogenetic tree
+#3. Phylogenetic tree
 #download https://github.com/BGI-shenzhen/VCF2Dis.git
 
 mkdir /phylogenetics
@@ -31,7 +36,9 @@ module load r/4.2.0
 
 VCF2Dis-1.51/bin/VCF2Dis -InPut $input.vcf -OutPut $results_p_dis.mat
 
-#Plot in Figtree, check if have NWT file output, otherwise, use the following R code to generate:
+#Plot in Figtree 
+#http://tree.bio.ed.ac.uk/software/figtree/
+#check if have NWT file output, otherwise, use the following R code to generate:
 
 if(!require(ape)) install.packages("ape")
 library(ape)

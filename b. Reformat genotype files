@@ -18,4 +18,4 @@ plink --file 50_samples --keep-allele-order --allow-extra-chr --allow-no-sex --d
 (This is disallowed for humans.  Check if the problem is with your data, or if
 you forgot to define a different chromosome set with e.g. --chr-set.)
 #Solution 1: Add flag with number of chromosomes specified
---chr-set 46
+eg. --chr-set 46

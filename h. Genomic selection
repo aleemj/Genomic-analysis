@@ -1,7 +1,9 @@
 #Perform genomic selection for traits 
 #extracted from https://github.com/MarcooLopez/Genomic-Selection/blob/master/single_environment.md
 
-#Genomic relatedness matrix can be extracted from g. Genome-wide association studies #2. Estimate relatedness matrix
+#Genomic relatedness matrix can be made using PLINK
+plink --bfile $input --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id --make-rel triangle
+
 
 #!R
 # Clean the working environment

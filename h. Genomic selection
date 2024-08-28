@@ -1,48 +1,38 @@
-#Perform genomic selection for traits 
+#Perform genomic selection for traits in R
 #extracted from https://github.com/MarcooLopez/Genomic-Selection/blob/master/single_environment.md
+#numerical format for genotype file should be produced from plink --recodeA
+#refer to b. Reformat genotype files 4. bed to numeric format
 
-#Genomic relatedness matrix can be made using PLINK
-plink --bfile $input --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id --make-rel triangle
-#Relationship matrix written to plink.rel , and IDs written to plink.rel.id.
 
-#!R
 # Clean the working environment
 rm(list = ls())
 
 # Load libraries
 library(BGLR)
 library(rrBLUP)
-library(dplyr)
 library(data.table)
+library(dplyr)
 
 #==================================================
-#Preparation of data
+# Prepare input data
 #==================================================
 
-# Set working directory to location of input files
-setwd("$input_file_path")
+# Load data
+X <- fread("/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2024_Arugula reference genome paper/Updated_genomic_analysis/GS/final_recodeA.raw")#load genotype numeric file
+Y <- read.table('/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2024_Arugula reference genome paper/Updated_genomic_analysis/GS/final_05.pheno', head = TRUE)  #load phenotype file
 
-# Load genotype data
-X = data.frame(fread("GAPIT.Genotype.Numerical.txt"))
 # Make the "taxa" column the row names
 rownames(X) <- X$taxa
 # Remove the "taxa" column from the dataframe
 X <- X[, -1]
 
-# Load phenotype data
-Y <- read.csv("arugula_planteye.csv", head = TRUE)
 # Make the "sample_ID" column the row names
 rownames(Y) <- Y$sample_ID
 # Remove the "sample_ID" column from the dataframe
 Y <- Y[, -1]
 
-# Desired traits
-traits <- c("Digital_biomass")
-# Select the filtered columns from Y
-Y <- Y[, traits, drop = FALSE]
-
-# Format all data 
-y <- Y[, 1]
+# Select a phenotype
+y <- Y[,1]
 
 # Remove columns with zero standard deviation - otherwise introduce NAs into matrix
 sd_values <- apply(X, 2, sd)
@@ -50,11 +40,11 @@ X <- X[, sd_values > 0]
 
 # Genomic relationship matrix
 M <- scale(X)
-G <- tcrossprod(M) / ncol(M)  # Calculate the covariance matrix of genetic effects based on marker data
+G <- tcrossprod(M) / ncol(X) # Calculate the covariance matrix of genetic effects based on marker data
 
-# Design matrix for individuals
-GID <- factor(rownames(Y), levels = rownames(Y))
-Zg <- model.matrix(~ GID - 1)
+# Design matrix for individuals. In this case is a diagonal since there are no replicates
+GID <- factor(rownames(Y),levels=rownames(Y))
+Zg <- model.matrix(~GID-1)
 
 #==================================================
 #The below code is to extract model parameters and normally not needed

@@ -15,13 +15,7 @@ plink --file $input --make-bed --out
 plink --file 50_samples --keep-allele-order --allow-extra-chr --allow-no-sex --double-id --make-bed --out $output
 
 #4. VCF fole to numeric genotype forat (for Genomic selection)
-./plink --bfile ./scratch/adrian_et_al_2024_arugula_ref_genome/Genotype/final_05 --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id --recodeA --out final_recodeA
-
-recodeA?
-recodeAD?
-recode01?
-recode12?
-recode23?
+./plink --bfile $input --keep-allele-order --allow-extra-chr --allow-no-sex --double-id --recodeA --out $output
 
 #Errors: 
 #Error 1: Invalid chromosome code '27' on line 20662973 of .vcf file.

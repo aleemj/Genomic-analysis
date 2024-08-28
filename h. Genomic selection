@@ -1,7 +1,7 @@
 #Perform genomic selection for traits in R
 #extracted from https://github.com/MarcooLopez/Genomic-Selection/blob/master/single_environment.md
 #numerical format for genotype file should be produced from plink --recodeA
-#refer to b. Reformat genotype files 4. bed to numeric format
+#refer to b. Reformat genotype files #4. VCF fole to numeric genotype forat (for Genomic selection)
 
 
 # Clean the working environment

@@ -24,6 +24,7 @@ rm(list = ls())
 library(BGLR)
 library(rrBLUP)
 library(data.table)
+library(vroom)
 library(dplyr)
 
 #==================================================
@@ -31,7 +32,9 @@ library(dplyr)
 #==================================================
 
 # Load data
-X <- fread("$input_genotype.raw") # Load genotype numeric file
+#X <- fread("$input_genotype.raw") # Load genotype numeric file
+X <- vroom("$input_genotype.raw", col_names = TRUE) # Load genotype numeric file
+X <- as.data.frame(X)
 Y <- read.table($input_phenotype.txt, header = TRUE)  # Load phenotype file
 
 # Make the "FID" column the row names for the genotype data
@@ -56,6 +59,8 @@ cat("Phenotype vector length: ", length(y), "\n")
 # Genomic relationship matrix
 M <- scale(X)
 G <- tcrossprod(M) / ncol(X) # Calculate the covariance matrix of genetic effects based on marker data
+
+rm(X) #remove large data frame to save space
 
 # Design matrix for individuals. In this case is a diagonal since there are no replicates
 GID <- factor(rownames(Y), levels = rownames(Y))

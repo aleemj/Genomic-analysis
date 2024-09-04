@@ -1,0 +1,330 @@
+# Clean the working environment
+rm(list = ls())
+
+# Load libraries
+library(BGLR)
+library(rrBLUP)
+library(dplyr)
+library(data.table)
+
+#==================================================
+#Preparation of data
+#==================================================
+
+# Set working directory with input and output files 
+setwd("/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2023_Arugula reference genonme paper/Genomic analysis/4. GWAS/Input files")
+
+# Load genotype data
+X = data.frame(fread("GAPIT.Genotype.Numerical.txt"))
+# Make the "taxa" column the row names
+rownames(X) <- X$taxa
+# Remove the "taxa" column from the dataframe
+X <- X[, -1]
+
+# Load phenotype data
+Y <- read.csv("arugula_planteye.csv", head = TRUE)
+# Make the "sample_ID" column the row names
+rownames(Y) <- Y$sample_ID
+# Remove the "sample_ID" column from the dataframe
+Y <- Y[, -1]
+
+
+###########################################Digital biomass
+setwd("/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2023_Arugula reference genonme paper/Genomic analysis/4. GWAS/Input files")
+# Desired traits
+traits <- c("Digital_biomass")
+# Select the filtered columns from Y
+Y <- Y[, traits, drop = FALSE]
+
+# Format all data 
+y <- Y[, 1]
+
+# Remove columns with zero standard deviation - otherwise introduce NAs into matrix
+sd_values <- apply(X, 2, sd)
+X <- X[, sd_values > 0]
+
+# Load SNP p-values
+pvalues <- read.csv("/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2023_Arugula reference genonme paper/Genomic analysis/4. GWAS/GWAS_results_export/p-values/Digital biomass.csv", head = TRUE)
+# Sort SNPs by p-value
+sorted_snps <- pvalues[order(pvalues$P.value), "ID"]
+
+# Set working directory for storage of results
+setwd("/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2023_Arugula reference genonme paper/Genomic analysis/5. GS/digital_biomass_GS/SNP_iteration")
+
+# Choose the model for GS
+model <- "BRR"  # You can change this to "BRR", "LASSO", or "BayesB"
+
+# Parameters for GS
+percTST <- 0.3
+m <- 5
+nIter <- 1200
+burnIn <- 200
+
+# Number of SNPs to test
+#snps_to_test <- seq(100, ncol(X), by=100)
+# Number of SNPs to test, from 100 to 20000
+snps_to_test <- seq(100, min(20000, ncol(X)), by=100)
+
+# Initialize a list to store accuracies
+accuracy_results <- list()
+
+for (num_snps in snps_to_test) {
+  selected_snps <- sorted_snps[1:num_snps]
+  X_subset <- X[, selected_snps, drop = FALSE]
+  
+  # Scale the genotype data
+  M <- scale(X_subset)
+  G <- tcrossprod(M) / ncol(M)
+  
+  # Matrix to store results for this SNP set
+  outCOR <- matrix(NA, nrow = m, ncol = 1)
+  colnames(outCOR) <- model
+  
+  # Seeds for reproducibility
+  set.seed(123)
+  seeds <- round(seq(1E3, 1E6, length = m))
+  
+  nTST <- round(percTST * nrow(Y))
+  
+  for (k in 1:m) {
+    set.seed(seeds[k])
+    indexTST <- sample(1:nrow(Y), size = nTST, replace = FALSE)
+    yNA <- y
+    yNA[indexTST] <- NA
+    
+    if (model == "GBLUP")  ETA <- list(list(K = G, model = "RKHS"))
+    if (model == "BRR")    ETA <- list(list(X = M, model = "BRR"))
+    if (model == "LASSO")  ETA <- list(list(X = M, model = "BL"))
+    if (model == "BayesB") ETA <- list(list(X = M, model = "BayesB"))
+    
+    fm <- BGLR(yNA, ETA = ETA, nIter = nIter, burnIn = burnIn)
+    outCOR[k, 1] <- cor(fm$yHat[indexTST], y[indexTST])
+  }
+  
+  # Save results for this SNP set
+  #accuracy_results[[paste0(num_snps, "_SNPs")]] <- outCOR
+  save(outCOR, file = paste0("outCOR_", model, "_", num_snps, "_SNPs.RData"))
+}
+
+# Plot results by reading saved outCOR files
+results_df <- data.frame()
+for (num_snps in snps_to_test) {
+  filename <- paste0("outCOR_", model, "_", num_snps, "_SNPs.RData")
+  if (file.exists(filename)) {
+    load(filename)
+    temp_df <- data.frame(SNPs = num_snps, Accuracy = outCOR)
+    colnames(temp_df) <- c("SNPs", "Accuracy")  # Ensure the column names are correctly set
+    results_df <- rbind(results_df, temp_df)
+  }
+}
+
+# Plot results
+ggplot(results_df, aes(x = factor(SNPs), y = Accuracy)) +
+  geom_boxplot() +
+  labs(x = "Number of SNPs", y = "Accuracy", title = "GS model comparison of digital biomass prediction accuracy across SNP sets") +
+  theme_minimal()
+
+
+###################################height 
+setwd("/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2023_Arugula reference genonme paper/Genomic analysis/4. GWAS/Input files")
+# Load phenotype data
+Y <- read.csv("arugula_planteye.csv", head = TRUE)
+# Make the "sample_ID" column the row names
+rownames(Y) <- Y$sample_ID
+# Remove the "sample_ID" column from the dataframe
+Y <- Y[, -1]
+
+# Desired traits
+traits <- c("Height")
+# Select the filtered columns from Y
+Y <- Y[, traits, drop = FALSE]
+
+# Format all data 
+y <- Y[, 1]
+
+# Remove columns with zero standard deviation - otherwise introduce NAs into matrix
+sd_values <- apply(X, 2, sd)
+X <- X[, sd_values > 0]
+
+# Load SNP p-values
+pvalues <- read.csv("/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2023_Arugula reference genonme paper/Genomic analysis/4. GWAS/GWAS_results_export/p-values/Height.csv", head = TRUE)
+# Sort SNPs by p-value
+sorted_snps <- pvalues[order(pvalues$P.value), "ID"]
+
+# Set working directory for storage of results
+setwd("/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2023_Arugula reference genonme paper/Genomic analysis/5. GS/height_GS/SNP_iteration")
+
+# Choose the model for GS
+model <- "BayesB"  # You can change this to "BRR", "LASSO", or "BayesB"
+
+# Parameters for GS
+percTST <- 0.3
+m <- 5
+nIter <- 1200
+burnIn <- 200
+
+# Number of SNPs to test
+#snps_to_test <- seq(100, ncol(X), by=100)
+# Number of SNPs to test, from 100 to 20000
+snps_to_test <- seq(100, min(20000, ncol(X)), by=100)
+
+# Initialize a list to store accuracies
+accuracy_results <- list()
+
+for (num_snps in snps_to_test) {
+  selected_snps <- sorted_snps[1:num_snps]
+  X_subset <- X[, selected_snps, drop = FALSE]
+  
+  # Scale the genotype data
+  M <- scale(X_subset)
+  G <- tcrossprod(M) / ncol(M)
+  
+  # Matrix to store results for this SNP set
+  outCOR <- matrix(NA, nrow = m, ncol = 1)
+  colnames(outCOR) <- model
+  
+  # Seeds for reproducibility
+  set.seed(123)
+  seeds <- round(seq(1E3, 1E6, length = m))
+  
+  nTST <- round(percTST * nrow(Y))
+  
+  for (k in 1:m) {
+    set.seed(seeds[k])
+    indexTST <- sample(1:nrow(Y), size = nTST, replace = FALSE)
+    yNA <- y
+    yNA[indexTST] <- NA
+    
+    if (model == "GBLUP")  ETA <- list(list(K = G, model = "RKHS"))
+    if (model == "BRR")    ETA <- list(list(X = M, model = "BRR"))
+    if (model == "LASSO")  ETA <- list(list(X = M, model = "BL"))
+    if (model == "BayesB") ETA <- list(list(X = M, model = "BayesB"))
+    
+    fm <- BGLR(yNA, ETA = ETA, nIter = nIter, burnIn = burnIn)
+    outCOR[k, 1] <- cor(fm$yHat[indexTST], y[indexTST])
+  }
+  
+  # Save results for this SNP set
+  #accuracy_results[[paste0(num_snps, "_SNPs")]] <- outCOR
+  save(outCOR, file = paste0("outCOR_", model, "_", num_snps, "_SNPs.RData"))
+}
+
+# Plot results by reading saved outCOR files
+results_df <- data.frame()
+for (num_snps in snps_to_test) {
+  filename <- paste0("outCOR_", model, "_", num_snps, "_SNPs.RData")
+  if (file.exists(filename)) {
+    load(filename)
+    temp_df <- data.frame(SNPs = num_snps, Accuracy = outCOR)
+    colnames(temp_df) <- c("SNPs", "Accuracy")  # Ensure the column names are correctly set
+    results_df <- rbind(results_df, temp_df)
+  }
+}
+
+# Plot results
+ggplot(results_df, aes(x = factor(SNPs), y = Accuracy)) +
+  geom_boxplot() +
+  labs(x = "Number of SNPs", y = "Accuracy", title = "GS model comparison of height prediction accuracy across SNP sets") +
+  theme_minimal()
+
+###################################leaf area 
+setwd("/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2023_Arugula reference genonme paper/Genomic analysis/4. GWAS/Input files")
+# Load phenotype data
+Y <- read.csv("arugula_planteye.csv", head = TRUE)
+# Make the "sample_ID" column the row names
+rownames(Y) <- Y$sample_ID
+# Remove the "sample_ID" column from the dataframe
+Y <- Y[, -1]
+
+# Desired traits
+traits <- c("Leaf_area")
+# Select the filtered columns from Y
+Y <- Y[, traits, drop = FALSE]
+
+# Format all data 
+y <- Y[, 1]
+
+# Remove columns with zero standard deviation - otherwise introduce NAs into matrix
+sd_values <- apply(X, 2, sd)
+X <- X[, sd_values > 0]
+
+# Load SNP p-values
+pvalues <- read.csv("/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2023_Arugula reference genonme paper/Genomic analysis/4. GWAS/GWAS_results_export/p-values/Height.csv", head = TRUE)
+# Sort SNPs by p-value
+sorted_snps <- pvalues[order(pvalues$P.value), "ID"]
+
+# Set working directory for storage of results
+setwd("/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2023_Arugula reference genonme paper/Genomic analysis/5. GS/leaf_area_GS/SNP_iteration")
+
+# Choose the model for GS
+model <- "BayesB"  # You can change this to "BRR", "LASSO", or "BayesB"
+
+# Parameters for GS
+percTST <- 0.3
+m <- 5
+nIter <- 1200
+burnIn <- 200
+
+# Number of SNPs to test
+#snps_to_test <- seq(100, ncol(X), by=100)
+# Number of SNPs to test, from 100 to 20000
+snps_to_test <- seq(100, min(20000, ncol(X)), by=100)
+
+# Initialize a list to store accuracies
+accuracy_results <- list()
+
+for (num_snps in snps_to_test) {
+  selected_snps <- sorted_snps[1:num_snps]
+  X_subset <- X[, selected_snps, drop = FALSE]
+  
+  # Scale the genotype data
+  M <- scale(X_subset)
+  G <- tcrossprod(M) / ncol(M)
+  
+  # Matrix to store results for this SNP set
+  outCOR <- matrix(NA, nrow = m, ncol = 1)
+  colnames(outCOR) <- model
+  
+  # Seeds for reproducibility
+  set.seed(123)
+  seeds <- round(seq(1E3, 1E6, length = m))
+  
+  nTST <- round(percTST * nrow(Y))
+  
+  for (k in 1:m) {
+    set.seed(seeds[k])
+    indexTST <- sample(1:nrow(Y), size = nTST, replace = FALSE)
+    yNA <- y
+    yNA[indexTST] <- NA
+    
+    if (model == "GBLUP")  ETA <- list(list(K = G, model = "RKHS"))
+    if (model == "BRR")    ETA <- list(list(X = M, model = "BRR"))
+    if (model == "LASSO")  ETA <- list(list(X = M, model = "BL"))
+    if (model == "BayesB") ETA <- list(list(X = M, model = "BayesB"))
+    
+    fm <- BGLR(yNA, ETA = ETA, nIter = nIter, burnIn = burnIn)
+    outCOR[k, 1] <- cor(fm$yHat[indexTST], y[indexTST])
+  }
+  
+  # Save results for this SNP set
+  #accuracy_results[[paste0(num_snps, "_SNPs")]] <- outCOR
+  save(outCOR, file = paste0("outCOR_", model, "_", num_snps, "_SNPs.RData"))
+}
+
+# Plot results by reading saved outCOR files
+results_df <- data.frame()
+for (num_snps in snps_to_test) {
+  filename <- paste0("outCOR_", model, "_", num_snps, "_SNPs.RData")
+  if (file.exists(filename)) {
+    load(filename)
+    temp_df <- data.frame(SNPs = num_snps, Accuracy = outCOR)
+    colnames(temp_df) <- c("SNPs", "Accuracy")  # Ensure the column names are correctly set
+    results_df <- rbind(results_df, temp_df)
+  }
+}
+
+# Plot results
+ggplot(results_df, aes(x = factor(SNPs), y = Accuracy)) +
+  geom_boxplot() +
+  labs(x = "Number of SNPs", y = "Accuracy", title = "GS model comparison of leaf area prediction accuracy across SNP sets") +
+  theme_minimal()

@@ -1,7 +1,20 @@
-#Perform genomic selection for traits in R
+#Perform genomic selection for traits in R, using NSCC if file is big
 #extracted from https://github.com/MarcooLopez/Genomic-Selection/blob/master/single_environment.md
 #numerical format for genotype file should be produced from plink --recodeA
 #refer to b. Reformat genotype files #4. VCF fole to numeric genotype forat (for Genomic selection)
+
+#to run in NSCC, upload R file and use sh file to run 
+#bash
+module load R
+R CMD BATCH genomic_selection.R
+
+
+#==================================================
+# genomic_selection.R
+#==================================================
+#change file names, working directories and ensure phenotype and genotype files are properly formatted.
+#genotype file should be .raw file from plink numerical format, with columns as samples and rows as SNPs, first six columns are FID IID PAT MAT SEX PHENOTYPE. (tab delimitted)
+#phenotype file should be .txt file containing phenotypes of samples, in same order as genotype file. First column is ID. 
 
 
 # Clean the working environment
@@ -18,84 +31,43 @@ library(dplyr)
 #==================================================
 
 # Load data
-X <- fread("/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2024_Arugula reference genome paper/Updated_genomic_analysis/GS/final_recodeA.raw")#load genotype numeric file
-Y <- read.table('/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2024_Arugula reference genome paper/Updated_genomic_analysis/GS/final_05.pheno', head = TRUE)  #load phenotype file
+X <- fread("$input_genotype.raw") # Load genotype numeric file
+Y <- read.table($input_phenotype.txt, header = TRUE)  # Load phenotype file
 
-# Make the "taxa" column the row names
-rownames(X) <- X$taxa
-# Remove the "taxa" column from the dataframe
-X <- X[, -1]
+# Make the "FID" column the row names for the genotype data
+rownames(X) <- X$FID
+# Remove the first six columns from the dataframe (FID, IID, PAT, MAT, SEX, PHENOTYPE)
+X <- X[, -c(1:6)]
 
-# Make the "sample_ID" column the row names
-rownames(Y) <- Y$sample_ID
-# Remove the "sample_ID" column from the dataframe
+# Make the "ID" column the row names for the phenotype data
+rownames(Y) <- Y$ID
+# Remove the "ID" column from the dataframe
 Y <- Y[, -1]
+# Select a phenotype (the first column)
+y <- Y[, 1]
 
-# Select a phenotype
-y <- Y[,1]
+# Remove SNP columns with zero standard deviation
+X <- X %>% select_if(function(col) sd(col) > 0)
 
-# Remove columns with zero standard deviation - otherwise introduce NAs into matrix
-sd_values <- apply(X, 2, sd)
-X <- X[, sd_values > 0]
+# Check data dimensions and contents
+cat("Genotype matrix dimensions: ", dim(X), "\n")
+cat("Phenotype vector length: ", length(y), "\n")
 
 # Genomic relationship matrix
 M <- scale(X)
 G <- tcrossprod(M) / ncol(X) # Calculate the covariance matrix of genetic effects based on marker data
 
 # Design matrix for individuals. In this case is a diagonal since there are no replicates
-GID <- factor(rownames(Y),levels=rownames(Y))
+GID <- factor(rownames(Y), levels = rownames(Y))
 Zg <- model.matrix(~GID-1)
-
-#==================================================
-#The below code is to extract model parameters and normally not needed
-#==================================================
-#set.seed(123)
-
-# Matrix to store results. It will save the main parameters for each model
-#outVAR <- matrix(NA, nrow = 6, ncol = 5)
-#dimnames(outVAR) <- list(c("varU", "varE", "lambda", "dfb", "Sb", "H2"), c("GBLUP1", "GBLUP2", "BRR", "LASSO", "BayesB"))
-
-# Number of iterations and burn-in for Bayesian models
-#nIter <- 1200
-#burnIn <- 200
-
-# G-BLUP model using 'rrBLUP' package
-#fm <- mixed.solve(y=y,Z=Zg,K=G) 
-#outVAR[1,1] <- fm$Vu
-#outVAR[2,1] <- fm$Ve
-#outVAR[6,1] <- fm$Vu/(fm$Vu+fm$Ve)  # Heritability
-
-# G-BLUP model using 'BGLR' package. Model RKHS with K=G
-#fm <- BGLR(y,ETA=list(list(K=G,model="RKHS")),nIter=nIter,burnIn=burnIn)
-#outVAR[1,2] <- fm$ETA[[1]]$varU
-#outVAR[2,2] <- fm$varE
-#outVAR[6,2] <- outVAR[1,2]/(outVAR[1,2] + outVAR[2,2])  # Heritability
-
-# Bayesian Ridge Regression (BRR) using 'BGLR' package
-#fm <- BGLR(y,ETA=list(list(X=M,model="BRR")),nIter=nIter,burnIn=burnIn)
-#outVAR[1,3] <- fm$ETA[[1]]$varB * ncol(M)  # Multiply by p to obtain the right varU as in G-BLUP
-#outVAR[2,3] <- fm$varE
-#outVAR[6,3] <- outVAR[1,3]/(outVAR[1,3] + outVAR[2,3])  # Heritability
-
-# Bayesian LASSO model using 'BGLR' package
-#fm <- BGLR(y,ETA=list(list(X=M,model="BL")),nIter=nIter,burnIn=burnIn)
-#outVAR[2,4] <- fm$varE
-#outVAR[3,4] <- fm$ETA[[1]]$lambda
-
-# Bayes B model using 'BGLR' package
-#fm <- BGLR(y,ETA=list(list(X=M,model="BayesB")),nIter=nIter,burnIn=burnIn)
-#outVAR[2,5] <- fm$varE
-#outVAR[4,5] <- fm$ETA[[1]]$df0
-#outVAR[5,5] <- fm$ETA[[1]]$S0
-
-#print(outVAR)
 
 #==================================================
 # Comparative Genomic selection using different models
 #==================================================
 
-#set WD for storage of results
-setwd("$output_files_path")
+# Set WD for storage of results
+#output_files_path <- "$path_for_output_files"
+#setwd(output_files_path)
 
 # Models
 models <- c("GBLUP", "BRR", "LASSO", "BayesB")
@@ -108,6 +80,7 @@ percTST <- 0.3
 
 # Number of replicates
 m <- 5
+
 #==================================================
 
 for (mod in MODELS) {
@@ -132,19 +105,24 @@ for (mod in MODELS) {
     yNA <- y
     yNA[indexTST] <- NA
     
+    # Define the model-specific ETA
     if (model == "GBLUP")  ETA <- list(list(K = G, model = "RKHS"))
     if (model == "BRR")    ETA <- list(list(X = M, model = "BRR"))
     if (model == "LASSO")  ETA <- list(list(X = M, model = "BL"))
     if (model == "BayesB") ETA <- list(list(X = M, model = "BayesB"))
     
+    # Fit the model
     fm <- BGLR(yNA, ETA = ETA, nIter = nIter, burnIn = burnIn)
-    outCOR[k, 1] <- cor(fm$yHat[indexTST], y[indexTST])
+    
+    # Calculate the correlation
+    outCOR[k, 1] <- cor(fm$yHat[indexTST], y[indexTST], use = "complete.obs")
   }
   
   # Save results
   save(outCOR, file = paste0("outCOR_", model, ".RData"))
 }
 
+# Load and combine results
 OUT <- c()
 for (mod in seq_along(models)) {
   filename <- paste0("outCOR_", models[mod], ".RData")    
@@ -154,5 +132,11 @@ for (mod in seq_along(models)) {
   }    
 }
 
-round(rbind(Mean = apply(OUT, 2, mean), SD = apply(OUT, 2, sd)), 4)
+# Summarize and plot the results
+summary_stats <- round(rbind(Mean = apply(OUT, 2, mean), SD = apply(OUT, 2, sd)), 4)
+print(summary_stats)
+
+# Save the boxplot as a PNG file
+png(filename = "GS_model_comparison_boxplot.png", width = 800, height = 600)
 boxplot(OUT, ylab = "Accuracy", xlab = "Model", main = "GS model comparison of digital biomass prediction accuracy across 5 iterations.")
+dev.off()

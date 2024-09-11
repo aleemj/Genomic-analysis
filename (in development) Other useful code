@@ -1,0 +1,7 @@
+To compare two vcf files
+vcftools --vcf $input_1.vcf --diff $input_2.vcf --diff-site --out $output
+
+Summarise sequencing depth #doesn't work if vcf file has no depth information
+vcftools --vcf $input.vcf --depth -c > depth_summary.txt
+cat depth_summary.txt
+

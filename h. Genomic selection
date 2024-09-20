@@ -1,21 +1,16 @@
-#Perform genomic selection for traits in R, using NSCC if file is big
+#Perform genomic selection for traits in R
 #extracted from https://github.com/MarcooLopez/Genomic-Selection/blob/master/single_environment.md
-#numerical format for genotype file should be produced from plink --recodeA
-#refer to b. Reformat genotype files #4. VCF fole to numeric genotype forat (for Genomic selection)
-
-#to run in NSCC, upload R file and use sh file to run 
-#bash
-module load R
-R CMD BATCH genomic_selection.R
-
+#VanRaden, P. M. (2008). Efficient methods to compute genomic predictions. Journal of dairy science, 91(11), 4414-4423.
+#Yang, J., Lee, S. H., Goddard, M. E., & Visscher, P. M. (2011). GCTA: a tool for genome-wide complex trait analysis. American journal of human genetics, 88(1), 76–82.
+#GRM for genotype file should be produced from plink --make-rel
+#refer to b. Reformat genotype files #5. BED file to GRM (for genomic selection)
 
 #==================================================
 # genomic_selection.R
 #==================================================
 #change file names, working directories and ensure phenotype and genotype files are properly formatted.
-#genotype file should be .raw file from plink numerical format, with columns as samples and rows as SNPs, first six columns are FID IID PAT MAT SEX PHENOTYPE. (tab delimitted)
-#phenotype file should be .txt file containing phenotypes of samples, in same order as genotype file. First column is ID. 
-
+#genotype file should be grm file from plink --make-rel, m x m matrix the size of the number of samples
+#phenotype file should be .txt file containing phenotypes of samples, in same order as grm file. First column is ID. 
 
 # Clean the working environment
 rm(list = ls())
@@ -24,7 +19,6 @@ rm(list = ls())
 library(BGLR)
 library(rrBLUP)
 library(data.table)
-library(vroom)
 library(dplyr)
 
 #==================================================
@@ -32,47 +26,23 @@ library(dplyr)
 #==================================================
 
 # Load data
-#X <- fread("$input_genotype.raw") # Load genotype numeric file
-X <- vroom("$input_genotype.raw", col_names = TRUE) # Load genotype numeric file
-X <- as.data.frame(X)
-Y <- read.table($input_phenotype.txt, header = TRUE)  # Load phenotype file
+#make grm with plink --make-rel
+G <- as.matrix(fread("C:/Users/Adrian/Documents/Genomic selection/plink_grm_final_05.rel"))
+Y <- read.table("C:/Users/Adrian/Documents/Genomic selection/final_05.pheno", head = TRUE)  #load phenotype file
 
-# Make the "FID" column the row names for the genotype data
-rownames(X) <- X$FID
-# Remove the first six columns from the dataframe (FID, IID, PAT, MAT, SEX, PHENOTYPE)
-X <- X[, -c(1:6)]
-
-# Make the "ID" column the row names for the phenotype data
 rownames(Y) <- Y$ID
 # Remove the "ID" column from the dataframe
 Y <- Y[, -1]
 # Select a phenotype (the first column)
-y <- Y[, 1]
-
-# Remove SNP columns with zero standard deviation
-X <- X %>% select_if(function(col) sd(col) > 0)
-
-# Check data dimensions and contents
-cat("Genotype matrix dimensions: ", dim(X), "\n")
-cat("Phenotype vector length: ", length(y), "\n")
-
-# Genomic relationship matrix
-M <- scale(X)
-G <- tcrossprod(M) / ncol(X) # Calculate the covariance matrix of genetic effects based on marker data
-
-rm(X) #remove large data frame to save space
-
-# Design matrix for individuals. In this case is a diagonal since there are no replicates
-GID <- factor(rownames(Y), levels = rownames(Y))
-Zg <- model.matrix(~GID-1)
+y <- Y[, 3]
 
 #==================================================
 # Comparative Genomic selection using different models
 #==================================================
 
 # Set WD for storage of results
-#output_files_path <- "$path_for_output_files"
-#setwd(output_files_path)
+output_files_path <- "C:/Users/Adrian/Documents/Genomic selection"
+setwd(output_files_path)
 
 # Models
 models <- c("GBLUP", "BRR", "LASSO", "BayesB")
@@ -112,9 +82,9 @@ for (mod in MODELS) {
     
     # Define the model-specific ETA
     if (model == "GBLUP")  ETA <- list(list(K = G, model = "RKHS"))
-    if (model == "BRR")    ETA <- list(list(X = M, model = "BRR"))
-    if (model == "LASSO")  ETA <- list(list(X = M, model = "BL"))
-    if (model == "BayesB") ETA <- list(list(X = M, model = "BayesB"))
+    if (model == "BRR")    ETA <- list(list(X = G, model = "BRR"))
+    if (model == "LASSO")  ETA <- list(list(X = G, model = "BL"))
+    if (model == "BayesB") ETA <- list(list(X = G, model = "BayesB"))
     
     # Fit the model
     fm <- BGLR(yNA, ETA = ETA, nIter = nIter, burnIn = burnIn)
@@ -142,6 +112,6 @@ summary_stats <- round(rbind(Mean = apply(OUT, 2, mean), SD = apply(OUT, 2, sd))
 print(summary_stats)
 
 # Save the boxplot as a PNG file
-png(filename = "GS_model_comparison_boxplot.png", width = 800, height = 600)
-boxplot(OUT, ylab = "Accuracy", xlab = "Model", main = "GS model comparison of digital biomass prediction accuracy across 5 iterations.")
+png(filename = "GS_model_comparison_leafarea_boxplot.png", width = 800, height = 600)
+boxplot(OUT, ylab = "Accuracy", xlab = "Model", main = "GS model comparison of leaf area prediction accuracy across 5 iterations.")
 dev.off()

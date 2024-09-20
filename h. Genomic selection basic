@@ -26,22 +26,22 @@ library(dplyr)
 #==================================================
 
 # Load data
-#make grm with plink --make-rel
-G <- as.matrix(fread("C:/Users/Adrian/Documents/Genomic selection/plink_grm_final_05.rel"))
-Y <- read.table("C:/Users/Adrian/Documents/Genomic selection/final_05.pheno", head = TRUE)  #load phenotype file
+G <- as.matrix(fread("C:/Users/Adrian/Documents/Genomic selection/Input/plink_grm_final_05.rel"))
+Y <- read.table("C:/Users/Adrian/Documents/Genomic selection/Input/final_05.pheno", header = TRUE)
 
+# Select the phenotype column by name
+selected_phenotype <- "Leaf_Area"  # Change this to the desired phenotype name
+y <- Y[[selected_phenotype]]
+
+# Make the "ID" column the row names for the phenotype data
 rownames(Y) <- Y$ID
-# Remove the "ID" column from the dataframe
-Y <- Y[, -1]
-# Select a phenotype (the first column)
-y <- Y[, 3]
+Y <- Y[, -1]  # Remove the "ID" column
 
 #==================================================
 # Comparative Genomic selection using different models
 #==================================================
 
 # Set WD for storage of results
-output_files_path <- "C:/Users/Adrian/Documents/Genomic selection"
 setwd(output_files_path)
 
 # Models
@@ -94,13 +94,13 @@ for (mod in MODELS) {
   }
   
   # Save results
-  save(outCOR, file = paste0("outCOR_", model, ".RData"))
+  save(outCOR, file = paste0("outCOR_", model, "_", selected_phenotype, ".RData"))
 }
 
 # Load and combine results
 OUT <- c()
 for (mod in seq_along(models)) {
-  filename <- paste0("outCOR_", models[mod], ".RData")    
+  filename <- paste0("outCOR_", models[mod], "_", selected_phenotype, ".RData")
   if (file.exists(filename)) {
     load(filename, verbose = TRUE)
     OUT <- cbind(OUT, outCOR)
@@ -112,6 +112,7 @@ summary_stats <- round(rbind(Mean = apply(OUT, 2, mean), SD = apply(OUT, 2, sd))
 print(summary_stats)
 
 # Save the boxplot as a PNG file
-png(filename = "GS_model_comparison_leafarea_boxplot.png", width = 800, height = 600)
-boxplot(OUT, ylab = "Accuracy", xlab = "Model", main = "GS model comparison of leaf area prediction accuracy across 5 iterations.")
+png_filename <- paste0("GS_model_comparison_", selected_phenotype, "_boxplot.png")
+png(filename = png_filename, width = 800, height = 600)
+boxplot(OUT, ylab = "Accuracy", xlab = "Model", main = paste("GS model comparison of", selected_phenotype, "prediction accuracy across 5 iterations."))
 dev.off()

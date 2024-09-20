@@ -1,0 +1,76 @@
+library(ggplot2)
+
+# Set working directories
+leaf_area_directory <- "/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2023_Arugula reference genonme paper/Genomic analysis/5. GS/leaf_area_GS/SNP_iteration"
+height_directory <- "/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2023_Arugula reference genonme paper/Genomic analysis/5. GS/height_GS/SNP_iteration"
+digital_biomass_directory <- "/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2023_Arugula reference genonme paper/Genomic analysis/5. GS/digital_biomass_GS/SNP_iteration"
+
+# Function to load results from a directory and add a trait column
+load_results <- function(directory, trait_name) {
+  # List all .RData files in the directory
+  result_files <- list.files(directory, pattern = "\\.RData$", full.names = TRUE)
+  
+  # Initialize an empty dataframe to store results
+  results_df <- data.frame()
+  
+  # Iterate over each file
+  for (filename in result_files) {
+    # Load the data from the .RData file
+    load(filename)
+    
+    # Extract the number of SNPs and accuracy from the loaded object
+    num_snps <- as.numeric(sub(".*_(\\d+)_SNPs\\.RData", "\\1", basename(filename)))
+    temp_df <- data.frame(SNPs = num_snps, Accuracy = outCOR, Trait = trait_name)
+    
+    # Set consistent column names
+    colnames(temp_df) <- c("SNPs", "Accuracy", "Trait")
+    
+    # Append to results_df
+    results_df <- rbind(results_df, temp_df)
+  }
+  
+  # Return the dataframe
+  return(results_df)
+}
+
+# Load results from each directory
+results_leaf_area <- load_results(leaf_area_directory, "Leaf Area")
+results_height <- load_results(height_directory, "Height")
+results_digital_biomass <- load_results(digital_biomass_directory, "Digital Biomass")
+
+# Combine results into a single dataframe
+results_combined <- rbind(results_leaf_area, results_height, results_digital_biomass)
+
+# Add a row for 0 SNPs and 0 Accuracy to set the starting point
+results_combined <- rbind(results_combined, data.frame(SNPs = 0, Accuracy = 0, Trait = "Leaf Area"))
+results_combined <- rbind(results_combined, data.frame(SNPs = 0, Accuracy = 0, Trait = "Height"))
+results_combined <- rbind(results_combined, data.frame(SNPs = 0, Accuracy = 0, Trait = "Digital Biomass"))
+
+# Filter the dataframe to include only up to x SNPs
+results_combined <- subset(results_combined, SNPs <= 3000)
+
+# Define custom color palette with distinct colors
+trait_colors <- c("Leaf Area" = "#800080",  # Blue
+                  "Height" = "#FF00FF",    # Orange
+                  "Digital Biomass" = "#A52A2A")  # Green
+
+# Plot combined results
+ggplot(results_combined, aes(x = factor(SNPs), y = Accuracy, fill = Trait, colour = Trait)) +
+  geom_boxplot(outlier.size = 0.5) +
+  geom_smooth(aes(group = Trait), method = "loess", se = FALSE) +  # Add smoothed line by Trait
+  theme_classic() +
+  labs(x = "Number of SNPs", y = "Accuracy", title = "GS Model Comparison of Prediction Accuracy Across SNP Sets") +
+  theme(
+    axis.ticks = element_line(),
+    axis.title.x = element_text(),
+    axis.title.y = element_text(),
+    axis.text.x = element_text(),
+    axis.text.y = element_text(),
+    legend.position = "top"
+  ) +
+  scale_x_discrete(breaks = seq(0, 3000, by = 500)) +  # Adjust breaks for filtered data
+  scale_y_continuous(limits = c(0, 1)) + # Adjust limits as needed
+  scale_fill_manual(values = trait_colors) +
+  scale_color_manual(values = trait_colors)
+
+

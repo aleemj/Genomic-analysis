@@ -1,45 +1,154 @@
 #==================================================
-#Preparation of grm files in bash linux
+# Preparation of GRM files in bash linux
 #==================================================
 
-# Set variables
-bed_file="your_genotype_data.bed"
-bim_file="your_genotype_data.bim"
-fam_file="your_genotype_data.fam"
-gwas_file="sorted_gwas.txt"
-output_prefix="final"
+#!/bin/bash
 
-# Loop through and create subsets
-for i in $(seq 1 100 $(wc -l < sorted_gwas.txt)); do
-  # Create a list of SNPs (100 at a time)
-  end=$((i + 99))
-  awk "NR>=$i && NR<=$end {print \$1}" sorted_gwas.txt > snp_subset.txt
+# Set variables
+bed_file="your_genotype_data"      # Specify the path to the .bed file prefix
+gwas_file="sorted_gwas.txt"        # Specify the sorted GWAS SNP file, column 1: SNP name, column 2: p-value
+output_prefix="grm"                # Prefix for output files
+snp_limit=3000                     # SNP limit (maximum number of SNPs)
+step_size=100                      # SNPs per subset
+
+# Ensure the sorted GWAS SNP file exists
+if [ ! -f "$gwas_file" ]; then
+  echo "Error: GWAS file $gwas_file not found!"
+  exit 1
+fi
+
+# Loop through the GWAS file and create SNP subsets, stopping at 3000 SNPs
+for i in $(seq 1 $step_size $snp_limit); do
+  end=$((i + step_size - 1))
   
-  # Create a bed file with the SNPs
-  plink --bfile $bed_file --extract snp_subset.txt --make-bed --out ${output_prefix}_subset_$((i/100+1))
+  # Ensure that we stop exactly at 3000 SNPs if needed
+  if [ $end -gt $snp_limit ]; then
+    end=$snp_limit
+  fi
   
-  # Generate GRM
-  plink --bfile ${output_prefix}_subset_$((i/100+1)) --make-rel --out ${output_prefix}_grm_$((i/100+1))
+  # Create a subset of SNPs (100 at a time)
+  awk "NR>=$i && NR<=$end {print \$1}" "$gwas_file" > snp_subset.txt
+  
+  # Create a bed file using the subset of SNPs
+  plink --bfile $bed_file --extract snp_subset.txt --make-bed --out "${output_prefix}_subset_$((i/step_size+1))"
+  
+  # Generate the GRM for the SNP subset
+  plink --bfile "${output_prefix}_subset_$((i/step_size+1))" --make-rel --out "${output_prefix}_grm_$((i/step_size+1))"
+
+  # Stop once 3000 SNPs have been processed
+  if [ $end -eq $snp_limit ]; then
+    break
+  fi
 done
+
+echo "GRM generation completed for up to $snp_limit SNPs in steps of $step_size."
+
 
 #==================================================
 #Genomic selection in R
 #==================================================
+# Clean the working environment
+rm(list = ls())
+
 # Load libraries
-library(data.table)
 library(BGLR)
+library(data.table)
+library(dplyr)
 
-# Set directory where GRM files are stored
-grm_dir <- "path/to/grm_files"
-grm_files <- list.files(grm_dir, pattern = "*grm.*.rel", full.names = TRUE)
+#==================================================
+# Prepare input data
+#==================================================
+# Load phenotype data
+Y <- read.table("C:/Users/Adrian/Documents/Genomic selection/Input/final_05.pheno", header = TRUE)
 
-# Loop through each GRM file
-for (grm_file in grm_files) {
+# Make "ID" column the row names for the phenotype data
+rownames(Y) <- Y$ID
+Y <- Y[, -1]
+
+# Select a phenotype (replace "leaf_area" with desired phenotype column name)
+phenotype_col <- "leaf_area"  # Specify the phenotype name
+y <- Y[[phenotype_col]]
+
+#==================================================
+# Parameters for GS
+#==================================================
+output_files_path <- "C:/Users/Adrian/Documents/Genomic selection/Results"
+setwd(output_files_path)
+
+# Choose the GS model to run (modify as needed to select only one)
+model <- "GBLUP"  # Select from "GBLUP", "BRR", "LASSO", "BayesB"
+
+# GS parameters
+percTST <- 0.3  # Percentage of data in the Testing set
+m <- 5           # Number of replicates
+nIter <- 1200    # Iterations for BGLR
+burnIn <- 200    # Burn-in period
+
+# Number of SNPs to test (as created from the previous Bash script)
+snps_to_test <- seq(100, 3000, by = 100)
+
+#==================================================
+# Main loop for different SNP subsets and one selected GS model
+#==================================================
+for (num_snps in snps_to_test) {
+  
+  # Load GRM for this SNP subset
+  grm_file <- paste0("C:/Users/Adrian/Documents/Genomic selection/GRMs/grm_subset_", num_snps, ".rel")
+  if (!file.exists(grm_file)) next  # Skip if GRM doesn't exist
+  
   G <- as.matrix(fread(grm_file))
   
-  # Proceed with your genomic selection analysis using G
-  # Fit the model
-  fm <- BGLR(yNA, ETA = list(list(K = G, model = "RKHS")), nIter = nIter, burnIn = burnIn)
+  # Matrix to store results for this SNP set and model
+  outCOR <- matrix(NA, nrow = m, ncol = 1)
+  colnames(outCOR) <- model
   
-  # Calculate correlation accuracy, etc.
+  # Set seeds for replicability
+  set.seed(123)
+  seeds <- round(seq(1E3, 1E6, length = m))
+  nTST <- round(percTST * nrow(Y))
+  
+  for (k in 1:m) {
+    set.seed(seeds[k])
+    indexTST <- sample(1:nrow(Y), size = nTST, replace = FALSE)
+    yNA <- y
+    yNA[indexTST] <- NA  # Mask the test set
+    
+    # Define ETA based on the selected model
+    if (model == "GBLUP")  ETA <- list(list(K = G, model = "RKHS"))
+    if (model == "BRR")    ETA <- list(list(X = G, model = "BRR"))
+    if (model == "LASSO")  ETA <- list(list(X = G, model = "BL"))
+    if (model == "BayesB") ETA <- list(list(X = G, model = "BayesB"))
+    
+    # Fit the model
+    fm <- BGLR(yNA, ETA = ETA, nIter = nIter, burnIn = burnIn)
+    
+    # Calculate accuracy (correlation)
+    outCOR[k, 1] <- cor(fm$yHat[indexTST], y[indexTST], use = "complete.obs")
+  }
+  
+  # Save results for this SNP set and model
+  save(outCOR, file = paste0("outCOR_", model, "_", num_snps, "_SNPs_", phenotype_col, ".RData"))
 }
+
+#==================================================
+# After the loop: Combine and summarize results
+#==================================================
+OUT <- list()
+
+for (num_snps in snps_to_test) {
+  filename <- paste0("outCOR_", model, "_", num_snps, "_SNPs_", phenotype_col, ".RData")
+  
+  if (file.exists(filename)) {
+    load(filename)
+    OUT[[paste0(model, "_", num_snps, "_SNPs")]] <- outCOR
+  }
+}
+
+# Summarize results and save a boxplot
+summary_stats <- sapply(OUT, function(x) round(c(Mean = mean(x, na.rm = TRUE), SD = sd(x, na.rm = TRUE)), 4))
+print(summary_stats)
+
+# Save boxplot as PNG
+png(filename = paste0("GS_model_comparison_", model, "_", phenotype_col, ".png"), width = 800, height = 600)
+boxplot(OUT, ylab = "Accuracy", xlab = "SNP Set", main = paste0("GS model comparison for ", model, " and ", phenotype_col))
+dev.off()

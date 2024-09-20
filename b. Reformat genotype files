@@ -14,8 +14,12 @@ plink --bfile $input --keep-allele-order --allow-extra-chr --allow-no-sex --doub
 plink --file $input --make-bed --out 
 plink --file 50_samples --keep-allele-order --allow-extra-chr --allow-no-sex --double-id --make-bed --out $output
 
-#4. VCF fole to numeric genotype forat (for Genomic selection)
+#4. BED file to numeric genotype format (0, 1, 2)
 ./plink --bfile $input --keep-allele-order --allow-extra-chr --allow-no-sex --double-id --recodeA --out $output
+
+#5 BED file to GRM (For genomic selection)
+./plink --bfile $input --keep-allele-order --allow-extra-chr --allow-no-sex --double-id --make-rel square --out $output
+Reference: VanRaden, P. M. (2008). Efficient methods to compute genomic predictions. Journal of dairy science, 91(11), 4414-4423.
 
 #Errors: 
 #Error 1: Invalid chromosome code '27' on line 20662973 of .vcf file.

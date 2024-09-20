@@ -1,1 +1,42 @@
+library(ggplot2)
 
+# Define file paths and traits
+traits <- c("Digital_Biomass", "Height", "Leaf_Area")
+input_dir <- "C:/Users/Adrian/Documents/Genomic selection/Basic_output"
+
+# Read and plot results
+results <- data.frame()
+for (trait in traits) {
+  for (model in c("GBLUP", "BRR", "LASSO", "BayesB")) {
+    for (file in list.files(input_dir, pattern = paste0("outCOR_", model, "_", trait, ".RData"))) {
+      load(file.path(input_dir, file))
+      df <- data.frame(Accuracy = outCOR[,1], Model = model, Trait = trait)
+      results <- rbind(results, df)
+    }
+  }
+}
+
+# Define custom color palette with distinct colors
+trait_colors <- c("Leaf_Area" = "#800080",  # Blue
+                  "Height" = "#FF00FF",    # Orange
+                  "Digital_Biomass" = "#A52A2A")  # Green
+
+# Plot results
+ggplot(results, aes(x = Model, y = Accuracy, colour = Trait)) +
+  geom_boxplot() +
+  facet_wrap(~ Trait, scales = "free_x") +
+  labs(title = "GS model comparison of prediction accuracy across 5 iterations",
+       x = "Model", y = "Accuracy") +
+  theme_classic() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.position = "none",
+    axis.ticks = element_line(),
+    axis.title.x = element_text(),
+    axis.title.y = element_text(),
+    axis.text.x = element_text(),
+    axis.text.y = element_text()
+  ) +
+  scale_fill_manual(values = trait_colors) +
+  scale_color_manual(values = trait_colors)

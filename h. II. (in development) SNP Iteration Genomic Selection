@@ -40,7 +40,7 @@ for i in $(seq 1 $step_size $snp_limit); do
   $plink_executable --bfile $bed_file --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id --extract "$cumulative_snp_subset" --make-bed --out "${output_prefix}_subset_$((i/step_size+1))"
   
   # Generate the GRM for the SNP subset
-  $plink_executable --bfile "${output_prefix}_subset_$((i/step_size+1))" --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id --make-rel --out "${output_prefix}_grm_$((i/step_size+1))"
+  $plink_executable --bfile "${output_prefix}_subset_$((i/step_size+1))" --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id --make-rel square --out "${output_prefix}_grm_$((i/step_size+1))"
 
   # Stop once snp_limit SNPs have been processed
   if [ $end -eq $snp_limit ]; then

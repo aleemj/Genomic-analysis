@@ -74,7 +74,7 @@ library(ggplot2)
 Y <- read.table("C:/Users/Adrian/Documents/Genomic_selection/Input/final_05.pheno", header = TRUE)
 
 # Select the phenotype column by name
-selected_phenotype <- "Leaf_Area"  # Change this to the desired phenotype name
+selected_phenotype <- "Digital_Biomass"  # Change this to the desired phenotype name
 y <- Y[[selected_phenotype]]
 
 # Make the "ID" column the row names for the phenotype data
@@ -84,10 +84,10 @@ Y <- Y[, -1]  # Remove the "ID" column
 #==================================================
 # Set working directory for GRM files
 #==================================================
-setwd("C:/Users/Adrian/Documents/Genomic_selection/SNP_iteration_output/Leaf_area")
+setwd("C:/Users/Adrian/Documents/Genomic_selection/SNP_iteration_output/Digital_biomass")
 
 # Choose the model for GS
-model <- "BRR"  # You can change this to "GBLUP", "LASSO", or "BayesB"
+model <- "GBLUP"  # You can change this to "GBLUP", "LASSO", or "BayesB", "BRR"
 
 # Parameters for GS
 percTST <- 0.3  # Percentage of data in the Testing set
@@ -98,8 +98,8 @@ burnIn <- 200    # Burn-in period
 #==================================================
 # Load GRM files based on the naming pattern
 #==================================================
-grm_files <- list.files(path = "C:/Users/Adrian/Documents/Genomic_selection/SNP_iteration_output/Leaf_area", 
-                        pattern = "^leafarea_grm_\\d+\\.rel$", 
+grm_files <- list.files(path = "C:/Users/Adrian/Documents/Genomic_selection/SNP_iteration_output/Digital_biomass", 
+                        pattern = "^digitalbiomass_grm_\\d+\\.rel$", 
                         full.names = TRUE)
 
 # Initialize a list to store accuracies
@@ -167,7 +167,13 @@ for (grm_file in grm_files) {
 }
 
 # Plot results
-ggplot(results_df, aes(x = factor(SNPs), y = Accuracy)) +
+p <- ggplot(results_df, aes(x = factor(SNPs), y = Accuracy)) +
   geom_boxplot() +
-  labs(x = "Number of SNPs", y = "Accuracy", title = "GS Model Comparison of Leaf Area Prediction Accuracy Across SNP Sets") +
+  labs(x = "Number of SNPs", y = "Accuracy", title = "GS Model Comparison of Digital Biomass Prediction Accuracy Across SNP Sets") +
   theme_minimal()
+
+# Save the plot as a PNG file
+ggsave("digitalbiomass_GS_Accuracy_Plot.png", plot = p, width = 10, height = 6)
+
+# Optional: Print the plot to the R console
+print(p)

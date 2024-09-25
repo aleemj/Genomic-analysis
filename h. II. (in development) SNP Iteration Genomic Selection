@@ -16,12 +16,6 @@ snp_limit=3000                           # SNP limit (maximum number of SNPs)
 step_size=100                            # SNPs added per iteration
 plink_executable="$plink"  # Set the path to the plink executable
 
-# Ensure the GWAS SNP file exists
-if [ ! -f "$gwas_file" ]; then
-  echo "Error: GWAS file $gwas_file not found! Skipping..."
-  exit 1
-fi
-
 # Sort the GWAS file by p-value (column x) in ascending order
 #change accordingly
 sort -k11,11g "$gwas_file" > "$sorted_gwas_file"
@@ -42,20 +36,8 @@ for i in $(seq 1 $step_size $snp_limit); do
   # Skip the header and extract SNPs (incrementally step_size more at a time) using `tail`
   tail -n +2 "$sorted_gwas_file" | head -n $end | tail -n $step_size | cut -f2 >> "$cumulative_snp_subset"
   
-  # Check if the cumulative SNP subset file is empty, and skip to the next iteration if it is
-  if [ ! -s "$cumulative_snp_subset" ]; then
-    echo "Warning: Cumulative SNP subset is empty for iteration $((i/step_size+1)). Skipping..."
-    continue
-  fi
-  
   # Create a bed file using the cumulative SNP subset
   $plink_executable --bfile $bed_file --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id --extract "$cumulative_snp_subset" --make-bed --out "${output_prefix}_subset_$((i/step_size+1))"
-  
-  # Check if the .bed file was successfully created, and skip to the next iteration if it wasn't
-  if [ ! -f "${output_prefix}_subset_$((i/step_size+1)).bed" ]; then
-    echo "Error: Failed to create ${output_prefix}_subset_$((i/step_size+1)).bed. Skipping..."
-    continue
-  fi
   
   # Generate the GRM for the SNP subset
   $plink_executable --bfile "${output_prefix}_subset_$((i/step_size+1))" --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id --make-rel --out "${output_prefix}_grm_$((i/step_size+1))"

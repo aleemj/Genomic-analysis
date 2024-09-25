@@ -64,57 +64,66 @@ rm(list = ls())
 library(BGLR)
 library(data.table)
 library(dplyr)
+library(ggplot2)
 
 #==================================================
-# Prepare input data
+# Preparation of data
 #==================================================
+
 # Load phenotype data
-Y <- read.table("C:/Users/Adrian/Documents/Genomic selection/Input/final_05.pheno", header = TRUE)
+Y <- read.table("C:/Users/Adrian/Documents/Genomic_selection/Input/final_05.pheno", header = TRUE)
 
-# Make "ID" column the row names for the phenotype data
+# Select the phenotype column by name
+selected_phenotype <- "Leaf_Area"  # Change this to the desired phenotype name
+y <- Y[[selected_phenotype]]
+
+# Make the "ID" column the row names for the phenotype data
 rownames(Y) <- Y$ID
-Y <- Y[, -1]
-
-# Select a phenotype (replace "leaf_area" with desired phenotype column name)
-phenotype_col <- "leaf_area"  # Specify the phenotype name
-y <- Y[[phenotype_col]]
+Y <- Y[, -1]  # Remove the "ID" column
 
 #==================================================
+# Set working directory for GRM files
+#==================================================
+setwd("C:/Users/Adrian/Documents/Genomic_selection/SNP_iteration_output/Leaf_area")
+
+# Choose the model for GS
+model <- "BRR"  # You can change this to "GBLUP", "LASSO", or "BayesB"
+
 # Parameters for GS
-#==================================================
-output_files_path <- "C:/Users/Adrian/Documents/Genomic selection/Results"
-setwd(output_files_path)
-
-# Choose the GS model to run (modify as needed to select only one)
-model <- "GBLUP"  # Select from "GBLUP", "BRR", "LASSO", "BayesB"
-
-# GS parameters
 percTST <- 0.3  # Percentage of data in the Testing set
-m <- 5           # Number of replicates
+m <- 15           # Number of replicates
 nIter <- 1200    # Iterations for BGLR
 burnIn <- 200    # Burn-in period
 
-# Number of SNPs to test (as created from the previous Bash script)
-snps_to_test <- seq(100, 3000, by = 100)
+#==================================================
+# Load GRM files based on the naming pattern
+#==================================================
+grm_files <- list.files(path = "C:/Users/Adrian/Documents/Genomic_selection/SNP_iteration_output/Leaf_area", 
+                        pattern = "^leafarea_grm_\\d+\\.rel$", 
+                        full.names = TRUE)
+
+# Initialize a list to store accuracies
+accuracy_results <- list()
 
 #==================================================
-# Main loop for different SNP subsets and one selected GS model
+# Main loop for each GRM file
 #==================================================
-for (num_snps in snps_to_test) {
+for (grm_file in grm_files) {
   
   # Load GRM for this SNP subset
-  grm_file <- paste0("C:/Users/Adrian/Documents/Genomic selection/GRMs/grm_subset_", num_snps, ".rel")
-  if (!file.exists(grm_file)) next  # Skip if GRM doesn't exist
-  
   G <- as.matrix(fread(grm_file))
+  
+  # Extract the number of SNPs from the filename
+  num_snps <- as.numeric(gsub(".*_(\\d+)\\.rel", "\\1", basename(grm_file)))
   
   # Matrix to store results for this SNP set and model
   outCOR <- matrix(NA, nrow = m, ncol = 1)
   colnames(outCOR) <- model
   
-  # Set seeds for replicability
+  # Set seeds for reproducibility
   set.seed(123)
   seeds <- round(seq(1E3, 1E6, length = m))
+  
   nTST <- round(percTST * nrow(Y))
   
   for (k in 1:m) {
@@ -137,28 +146,28 @@ for (num_snps in snps_to_test) {
   }
   
   # Save results for this SNP set and model
-  save(outCOR, file = paste0("outCOR_", model, "_", num_snps, "_SNPs_", phenotype_col, ".RData"))
+  save(outCOR, file = paste0("outCOR_", model, "_", num_snps, "_SNPs.RData"))
 }
 
 #==================================================
 # After the loop: Combine and summarize results
 #==================================================
-OUT <- list()
+results_df <- data.frame()
 
-for (num_snps in snps_to_test) {
-  filename <- paste0("outCOR_", model, "_", num_snps, "_SNPs_", phenotype_col, ".RData")
+for (grm_file in grm_files) {
+  num_snps <- as.numeric(gsub(".*_(\\d+)\\.rel", "\\1", basename(grm_file)))
+  filename <- paste0("outCOR_", model, "_", num_snps, "_SNPs.RData")
   
   if (file.exists(filename)) {
     load(filename)
-    OUT[[paste0(model, "_", num_snps, "_SNPs")]] <- outCOR
+    temp_df <- data.frame(SNPs = num_snps, Accuracy = outCOR)
+    colnames(temp_df) <- c("SNPs", "Accuracy")  # Ensure the column names are correctly set
+    results_df <- rbind(results_df, temp_df)
   }
 }
 
-# Summarize results and save a boxplot
-summary_stats <- sapply(OUT, function(x) round(c(Mean = mean(x, na.rm = TRUE), SD = sd(x, na.rm = TRUE)), 4))
-print(summary_stats)
-
-# Save boxplot as PNG
-png(filename = paste0("GS_model_comparison_", model, "_", phenotype_col, ".png"), width = 800, height = 600)
-boxplot(OUT, ylab = "Accuracy", xlab = "SNP Set", main = paste0("GS model comparison for ", model, " and ", phenotype_col))
-dev.off()
+# Plot results
+ggplot(results_df, aes(x = factor(SNPs), y = Accuracy)) +
+  geom_boxplot() +
+  labs(x = "Number of SNPs", y = "Accuracy", title = "GS Model Comparison of Leaf Area Prediction Accuracy Across SNP Sets") +
+  theme_minimal()

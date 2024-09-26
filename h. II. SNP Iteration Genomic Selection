@@ -1,5 +1,17 @@
+#Perform genomic selection for traits in R over different SNP sets, this code works in three parts:
+#Part 1: Preparation of GRM files
+#Requires a GWAS file for the trait and genotype file. This loop works in linux using plink to create GRM files for each subset according to step size and limit set for SNPs.
+#Part 2: Genomic selection in R
+#Extracted from h. Genomic Selection Basic. Makes use of the GRM files to run GS for every subset, saving each output file.
+#Part 3: Plotting of genomic selection accuracy
+#Loads the output files from Part 2 and plots each boxplot in a scatter plot. 
+
+#change file names, working directories and ensure phenotype, genotype and GWAS files are properly formatted.
+#Adjust SNP limits, step sizes and set executable plink file.
+#phenotype file should be .txt file containing phenotypes of samples, in same order as grm file. First column is ID. 
+
 #==================================================
-# Preparation of GRM files in bash linux
+# Part 1: Preparation of GRM files in bash linux
 #==================================================
 
 #!/bin/bash
@@ -55,7 +67,7 @@ echo "Incremental GRM generation completed for up to $snp_limit SNPs in steps of
 
 
 #==================================================
-#Genomic selection in R
+# Part 2: Genomic selection in R
 #==================================================
 # Clean the working environment
 rm(list = ls())
@@ -150,7 +162,7 @@ for (grm_file in grm_files) {
 }
 
 #==================================================
-# After the loop: Combine and summarize results
+#  Part 3: Combine and plot results
 #==================================================
 results_df <- data.frame()
 

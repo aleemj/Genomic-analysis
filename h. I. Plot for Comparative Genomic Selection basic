@@ -1,3 +1,9 @@
+#Comparative boxplot plotting for genomic selection for traits in R
+#refer to h. Genomic selection basic
+
+#specify trait names, as per directory path names for genomic selection basic output files
+#Specify input directory, where output of h. Genomic selection basic is located
+
 library(ggplot2)
 
 # Define file paths and traits

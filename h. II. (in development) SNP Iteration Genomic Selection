@@ -91,9 +91,9 @@ model <- "GBLUP"  # You can change this to "GBLUP", "LASSO", or "BayesB", "BRR"
 
 # Parameters for GS
 percTST <- 0.3  # Percentage of data in the Testing set
-m <- 15           # Number of replicates
-nIter <- 1200    # Iterations for BGLR
-burnIn <- 200    # Burn-in period
+m <- 20           # Number of replicates
+nIter <- 10000    # Iterations for BGLR
+burnIn <- 1000    # Burn-in period
 
 #==================================================
 # Load GRM files based on the naming pattern

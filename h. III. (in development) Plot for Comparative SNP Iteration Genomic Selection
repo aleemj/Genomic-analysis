@@ -1,3 +1,12 @@
+#Comparative boxplot plotting for SNP iteration genomic selection for multiple traits in R
+#refer to h. II. SNP Iteration Genomic Selection
+
+#specify trait names, as per directory path names for genomic selection basic output files
+#Specify input directories, where outputs of h. II. SNP Iteration Genomic Selection is located
+#change plot title and details, colors, axis labels etc accordingly. 
+#Adrian to write in direct saving of plot
+
+
 library(ggplot2)
 
 # Set working directories
@@ -72,5 +81,3 @@ ggplot(results_combined, aes(x = factor(SNPs), y = Accuracy, fill = Trait, colou
   scale_y_continuous(limits = c(0, 1)) + # Adjust limits as needed
   scale_fill_manual(values = trait_colors) +
   scale_color_manual(values = trait_colors)
-
-

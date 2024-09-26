@@ -3,6 +3,8 @@
 
 #specify trait names, as per directory path names for genomic selection basic output files
 #Specify input directory, where output of h. Genomic selection basic is located
+#change plot title and details, colors, axis labels etc accordingly. 
+#Adrian to write in direct saving of plot
 
 library(ggplot2)
 

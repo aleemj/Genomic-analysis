@@ -35,10 +35,8 @@ f. Genetic diversity statistics
 4. LD decay
 
 g. Genome wide association studies
-(To be updated)
 
 h. Genomic selection
-(To be updated)
 
 
 

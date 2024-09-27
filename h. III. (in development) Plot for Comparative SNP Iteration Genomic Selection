@@ -8,75 +8,68 @@
 
 library(ggplot2)
 
-# Set working directories
-leaf_area_directory <- "C:/Users/Adrian/Documents/Genomic_selection/SNP_iteration_output/Leaf_area"
-height_directory <- "C:/Users/Adrian/Documents/Genomic_selection/SNP_iteration_output/Height"
-digital_biomass_directory <- "C:/Users/Adrian/Documents/Genomic_selection/SNP_iteration_output/Digital_biomass"
+# List of directories and corresponding traits
+phenotype_directories <- list(
+  "Leaf Area" = "/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2023_Arugula reference genonme paper/Genomic analysis/5. GS/leaf_area_GS/SNP_iteration",
+  "Height" = "/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2023_Arugula reference genonme paper/Genomic analysis/5. GS/height_GS/SNP_iteration",
+  "Digital Biomass" = "/Users/adrianlee/Documents/NUS/Writing/WRITING_Adrian et al 2023_Arugula reference genonme paper/Genomic analysis/5. GS/digital_biomass_GS/SNP_iteration"
+)
 
 # Function to load results from a directory and add a trait column
 load_results <- function(directory, trait_name) {
   # List all .RData files in the directory
   result_files <- list.files(directory, pattern = "\\.RData$", full.names = TRUE)
-  print(paste("Files in directory:", directory))  # Debug print
-  print(result_files)  # Print the list of files
   
   # Initialize an empty dataframe to store results
   results_df <- data.frame()
   
   # Iterate over each file
   for (filename in result_files) {
-    print(paste("Loading file:", filename))  # Debug print
+    # Load the data from the .RData file
+    load(filename)
     
-    # Attempt to load the data
-    tryCatch({
-      load(filename)
-      print(ls())  # List loaded objects
-      print(head(outCOR))  # Inspect the content of outCOR
-      
-      # Extract the number of SNPs from the filename
-      num_snps <- as.numeric(sub(".*_GBLUP_(\\d+)_SNPs\\.RData", "\\1", basename(filename)))
-      print(paste("Extracted SNP number:", num_snps))  # Debug print
-      
-      # Create a dataframe for this file
-      temp_df <- data.frame(SNPs = num_snps, Accuracy = outCOR, Trait = trait_name)
-      
-      # Set consistent column names
-      colnames(temp_df) <- c("SNPs", "Accuracy", "Trait")
-      
-      # Append to results_df
-      results_df <- rbind(results_df, temp_df)
-    }, error = function(e) {
-      print(paste("Error loading file:", filename, " - ", e$message))  # Handle errors gracefully
-    })
+    # Extract the number of SNPs and accuracy from the loaded object
+    num_snps <- as.numeric(sub(".*_(\\d+)_SNPs\\.RData", "\\1", basename(filename)))
+    temp_df <- data.frame(SNPs = num_snps, Accuracy = outCOR, Trait = trait_name)
+    
+    # Set consistent column names
+    colnames(temp_df) <- c("SNPs", "Accuracy", "Trait")
+    
+    # Append to results_df
+    results_df <- rbind(results_df, temp_df)
   }
   
   # Return the dataframe
   return(results_df)
 }
 
-# Load results from each directory
-results_leaf_area <- load_results(leaf_area_directory, "Leaf Area")
-results_height <- load_results(height_directory, "Height")
-results_digital_biomass <- load_results(digital_biomass_directory, "Digital Biomass")
+# Initialize an empty dataframe for combined results
+results_combined <- data.frame()
 
-# Combine results into a single dataframe
-results_combined <- rbind(results_leaf_area, results_height, results_digital_biomass)
-
-# Add a row for 0 SNPs and 0 Accuracy to set the starting point
-results_combined <- rbind(results_combined, data.frame(SNPs = 0, Accuracy = 0, Trait = "Leaf Area"))
-results_combined <- rbind(results_combined, data.frame(SNPs = 0, Accuracy = 0, Trait = "Height"))
-results_combined <- rbind(results_combined, data.frame(SNPs = 0, Accuracy = 0, Trait = "Digital Biomass"))
+# Loop over each trait and directory
+for (trait_name in names(phenotype_directories)) {
+  directory <- phenotype_directories[[trait_name]]
+  
+  # Load results for this trait and directory
+  results <- load_results(directory, trait_name)
+  
+  # Append results to the combined dataframe
+  results_combined <- rbind(results_combined, results)
+  
+  # Add a row for 0 SNPs and 0 Accuracy to set the starting point
+  results_combined <- rbind(results_combined, data.frame(SNPs = 0, Accuracy = 0, Trait = trait_name))
+}
 
 # Filter the dataframe to include only up to 3000 SNPs
 results_combined <- subset(results_combined, SNPs <= 3000)
 
 # Define custom color palette with distinct colors
-trait_colors <- c("Leaf Area" = "#800080",  # Purple
-                  "Height" = "#FF00FF",    # Magenta
-                  "Digital Biomass" = "#A52A2A")  # Brown
+trait_colors <- c("Leaf Area" = "#800080",  # Blue
+                  "Height" = "#FF00FF",    # Orange
+                  "Digital Biomass" = "#A52A2A")  # Green
 
 # Plot combined results
-p <- ggplot(results_combined, aes(x = factor(SNPs), y = Accuracy, fill = Trait, colour = Trait)) +
+ggplot(results_combined, aes(x = factor(SNPs), y = Accuracy, fill = Trait, colour = Trait)) +
   geom_boxplot(outlier.size = 0.5) +
   geom_smooth(aes(group = Trait), method = "loess", se = FALSE) +  # Add smoothed line by Trait
   theme_classic() +
@@ -90,9 +83,9 @@ p <- ggplot(results_combined, aes(x = factor(SNPs), y = Accuracy, fill = Trait, 
     legend.position = "top"
   ) +
   scale_x_discrete(breaks = seq(0, 3000, by = 500)) +  # Adjust breaks for filtered data
-  scale_y_continuous(limits = c(0, 1)) +  # Adjust limits as needed
+  scale_y_continuous(limits = c(0, 1)) + # Adjust limits as needed
   scale_fill_manual(values = trait_colors) +
   scale_color_manual(values = trait_colors)
 
 # Save the plot
-ggsave("GS_Model_Comparison_Plot.png", plot = p, width = 10, height = 8, dpi = 300)
+ggsave("GS_Model_Comparison_Plot.png", width = 10, height = 6)

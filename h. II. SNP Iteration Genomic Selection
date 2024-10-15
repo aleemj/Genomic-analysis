@@ -124,6 +124,10 @@ for (grm_file in grm_files) {
   
   # Load GRM for this SNP subset
   G <- as.matrix(fread(grm_file))
+
+  # Replace NA and Inf values with 0 (or a small value like 1e-5)
+  G[is.na(G)] <- 0
+  G[is.infinite(G)] <- 0
   
   # Extract the number of SNPs from the filename
   num_snps <- as.numeric(gsub(".*_(\\d+)\\.rel", "\\1", basename(grm_file)))

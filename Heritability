@@ -1,0 +1,38 @@
+qsub -I -l walltime=3:00:00 -l select=1:ncpus=1:mem=100G
+
+#!/bin/bash
+
+# Paths
+GCTA_EXEC="/home/users/nus/aleemj/gcta-1.94.3-linux-kernel-3-x86_64/gcta64"
+GRM="/home/users/nus/aleemj/gcta-1.94.3-linux-kernel-3-x86_64/arugula_alvin/final.grm"
+PHENO_FILE="/home/users/nus/aleemj/gcta-1.94.3-linux-kernel-3-x86_64/arugula_alvin/arugula_all.phen"
+HEADER_FILE="/home/users/nus/aleemj/gcta-1.94.3-linux-kernel-3-x86_64/arugula_alvin/arugula.phen"
+QCOVAR_FILE="/home/users/nus/aleemj/gcta-1.94.3-linux-kernel-3-x86_64/arugula_alvin/pca_results.eigenvec"
+OUTPUT_DIR="/home/users/nus/aleemj/gcta-1.94.3-linux-kernel-3-x86_64/arugula_alvin/results"
+THREADS=10
+
+# Ensure output directory exists
+mkdir -p "$OUTPUT_DIR"
+
+# Extract phenotype names from the header file
+PHENOTYPES=($(cat "$HEADER_FILE"))
+
+# Loop through each phenotype index (starting from 1)
+for i in $(seq 1 ${#PHENOTYPES[@]}); do
+    PHENO_NAME="${PHENOTYPES[$((i - 1))]}"
+    OUTPUT_FILE="$OUTPUT_DIR/reml_${PHENO_NAME}"
+    
+    echo "Running GCTA for phenotype: $PHENO_NAME (Index: $i)"
+    
+    # Run GCTA with --mpheno to select the phenotype column
+    "$GCTA_EXEC" \
+        --grm "$GRM" \
+        --pheno "$PHENO_FILE" \
+        --qcovar "$QCOVAR_FILE" \
+        --reml \
+        --mpheno "$i" \
+        --out "$OUTPUT_FILE" \
+        --thread-num "$THREADS"
+done
+
+echo "GCTA analysis completed for all phenotypes."

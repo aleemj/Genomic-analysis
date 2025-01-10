@@ -54,7 +54,7 @@ MODELS <- c(1, 2, 3, 4)
 percTST <- 0.3
 
 # Number of replicates
-m <- 5
+m <- 100
 
 #==================================================
 
@@ -114,5 +114,5 @@ print(summary_stats)
 # Save the boxplot as a PNG file
 png_filename <- paste0("GS_model_comparison_", selected_phenotype, "_boxplot.png")
 png(filename = png_filename, width = 800, height = 600)
-boxplot(OUT, ylab = "Accuracy", xlab = "Model", main = paste("GS model comparison of", selected_phenotype, "prediction accuracy across 5 iterations."))
+boxplot(OUT, ylab = "Accuracy", xlab = "Model", main = paste("GS model comparison of", selected_phenotype, "prediction accuracy across ", m, " iterations."))
 dev.off()

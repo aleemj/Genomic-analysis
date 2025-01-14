@@ -14,23 +14,21 @@
 # Part 1: Preparation of GRM files in bash linux
 #==================================================
 
-#!/bin/bash
 
 # Change to output directory
-cd $output_directory
+cd /home/users/nus/e0725622/scratch/
 
 # Set variables
-bed_file="$input_bed"      # Specify the path to the .bed file prefix
-gwas_file="$input_gwas.txt"        # Specify the GWAS SNP file, unsorted
-sorted_gwas_file="$output_gwas_sorted.txt"  # File to store the sorted GWAS results
-output_prefix="$phenotype_name"          # Prefix for output files
-snp_limit=3000                           # SNP limit (maximum number of SNPs)
-step_size=100                            # SNPs added per iteration
-plink_executable="$plink"  # Set the path to the plink executable
+bed_file="/home/users/nus/e0725622/scratch/20241204_A_158/vcf_files/final"        # The .bed file prefix
+gwas_file="/home/users/nus/e0725622/scratch/adrian_arugula_analysis/GWAS/results/output/Trait10_Height_mm_21DAS.assoc.txt"  # GWAS SNP file, unsorted
+sorted_gwas_file="sorted_heightDAS21_gwas.txt"  # Sorted GWAS results
+output_prefix="/home/users/nus/e0725622/scratch/adrian_arugula_analysis/GS/height_DAS21"   # Prefix for output files
+snp_limit=3000                          # SNP limit (maximum number of SNPs)
+step_size=100                           # SNPs added per iteration
+plink_executable="/home/users/nus/aleemj/plink"  # Path to PLINK executable
 
-# Sort the GWAS file by p-value (column x) in ascending order
-#change accordingly
-sort -k11,11g "$gwas_file" > "$sorted_gwas_file"
+# Sort the GWAS file by p-value (column 10), skip the header
+sort -k10,10g "$gwas_file" > "$sorted_gwas_file"
 
 # Initialize a cumulative SNP subset file
 cumulative_snp_subset="cumulative_snp_subset.txt"
@@ -39,29 +37,31 @@ cumulative_snp_subset="cumulative_snp_subset.txt"
 # Loop through the sorted GWAS file and create SNP subsets, incrementally adding step_size SNPs per iteration
 for i in $(seq 1 $step_size $snp_limit); do
   end=$((i + step_size - 1))
-  
+
   # Ensure that we stop exactly at snp_limit SNPs if needed
   if [ $end -gt $snp_limit ]; then
     end=$snp_limit
   fi
-  
-  # Skip the header and extract SNPs (incrementally step_size more at a time) using `tail`
-  tail -n +2 "$sorted_gwas_file" | head -n $end | tail -n $step_size | cut -f2 >> "$cumulative_snp_subset"
-  
+
+  # Extract SNPs (incrementally step_size more at a time)
+  tail -n +2 "$sorted_gwas_file" | head -n $end | tail -n $step_size | cut -f2 > "$cumulative_snp_subset"
+
   # Create a bed file using the cumulative SNP subset
-  $plink_executable --bfile $bed_file --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id --extract "$cumulative_snp_subset" --make-bed --out "${output_prefix}_subset_${end}"
-  
+  $plink_executable --bfile "$bed_file" --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id --extract "$cumulative_snp_subset" --make-bed --out "${output_prefix}_subset_${end}"
+
   # Generate the GRM for the SNP subset
   $plink_executable --bfile "${output_prefix}_subset_${end}" --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id --make-rel square --out "${output_prefix}_grm_${end}"
 
   # Stop once snp_limit SNPs have been processed
   if [ $end -eq $snp_limit ]; then
-      break
+    break
   fi
 done
 
-# Cleanup temporary files
-rm "$cumulative_snp_subset"
+# Check if the cumulative SNP subset file exists before trying to remove it
+if [ -f "$cumulative_snp_subset" ]; then
+  rm "$cumulative_snp_subset"
+fi
 
 echo "Incremental GRM generation completed for up to $snp_limit SNPs in steps of $step_size."
 

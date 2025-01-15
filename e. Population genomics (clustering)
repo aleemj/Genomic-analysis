@@ -56,3 +56,6 @@ tree <- nj(dist_matrix)
 # save the tree to Newick format file
 write.tree(tree, file="output_tree.nwk") 
 
+#3a. IQTREE
+https://github.com/edgardomortiz/vcf2phylip
+http://www.iqtree.org/

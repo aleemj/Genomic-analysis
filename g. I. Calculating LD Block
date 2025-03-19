@@ -14,7 +14,7 @@ plink --bfile /home/users/nus/e0725622/scratch/20241204_A_158/vcf_files/final --
 #digital biomass          
 #find all SNPs in LD
 ./plink --bfile /home/users/nus/e0725622/scratch/20241204_A_158/vcf_files/final --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id  --r2 --ld-snp 6:36294338 --ld-window-kb 1000 --ld-window 99999 --out digital_biomass
-#extract list of SNPs in LD, and use to filter vcd file
+#extract list of SNPs in LD, and use to filter vcf file
 ./plink --vcf /home/users/nus/e0725622/scratch/20241204_A_158/vcf_files/final.vcf --extract snps_to_keep.txt --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id --recode vcf --out digital_biomass_snps
 #draw LD heatmap with just SNPs in LD
 LDBlockShow/bin/LDBlockShow -InVCF /home/users/nus/aleemj/digital_biomass_snps.vcf -OutPut DigitalBiomass -Region 6:36276329-36313843 -InGFF /home/users/nus/e0725622/scratch/reference_genomes/Eruca_sativa_unpublished/eruSat.final.gff3./bin/LDBlockShow -InVCF /home/users/nus/e0725622/scratch/20241204_A_158/vcf_files/final.vcf -OutPut DigitalBiomass -Region 6:36276329-36313843 -TagSNPCut 0.6 -InGFF /home/users/nus/e0725622/scratch/reference_genomes/Eruca_sativa_unpublished/eruSat.final.gff3 -OutPng -OutPdf
@@ -22,7 +22,7 @@ LDBlockShow/bin/LDBlockShow -InVCF /home/users/nus/aleemj/digital_biomass_snps.v
 #hue
 #find all SNPs in LD
 ./plink --bfile /home/users/nus/e0725622/scratch/20241204_A_158/vcf_files/final --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id  --r2 --ld-snp 8:22605222 --ld-window-kb 1000 --ld-window 99999 --out hue
-#extract list of SNPs in LD, and use to filter vcd file
+#extract list of SNPs in LD, and use to filter vcf file
 ./plink --vcf /home/users/nus/e0725622/scratch/20241204_A_158/vcf_files/final.vcf --extract snps_to_keep.txt --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id --recode vcf --out hue_snps
 #draw LD heatmap with just SNPs in LD
 LDBlockShow/bin/LDBlockShow -InVCF /home/users/nus/aleemj/hue_snps.vcf -OutPut hue -Region 8:22528917-22797872 -InGFF /home/users/nus/e0725622/scratch/reference_genomes/Eruca_sativa_unpublished/eruSat.final.gff3 -OutPng -OutPdf
@@ -30,10 +30,10 @@ LDBlockShow/bin/LDBlockShow -InVCF /home/users/nus/aleemj/hue_snps.vcf -OutPut h
 #leaf angle
 #find all SNPs in LD
 ./plink --bfile /home/users/nus/e0725622/scratch/20241204_A_158/vcf_files/final --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id  --r2 --ld-snp 10:19297971 --ld-window-kb 1000 --ld-window 99999 --out leaf_angle
-#extract list of SNPs in LD, and use to filter vcd file
+#extract list of SNPs in LD, and use to filter vcf file
 ./plink --vcf /home/users/nus/e0725622/scratch/20241204_A_158/vcf_files/final.vcf --extract snps_to_keep.txt --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id --recode vcf --out leaf_angle_snps
 #draw LD heatmap with just SNPs in LD
 LDBlockShow/bin/LDBlockShow -InVCF /home/users/nus/aleemj/leaf_angle_snps.vcf -OutPut leaf_angle -Region 10:19238767-19299485 -InGFF /home/users/nus/e0725622/scratch/reference_genomes/Eruca_sativa_unpublished/eruSat.final.gff3 -OutPng -OutPdf
 
 #significant snps
-./plink --bfile /home/users/nus/e0725622/scratch/20241204_A_158/vcf_files/final --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id  --r2 --ld-snp-list sig_snps.txt --ld-window-kb 1000 --ld-window 99999 --out sig_snps
+./plink --bfile /home/users/nus/e0725622/scratch/20241204_A_158/vcf_files/final --keep-allele-order --allow-extra-chr --chr-set 46 --allow-no-sex --double-id  --r2 --ld-snp-list sig_snps.txt --ld-window-kb 1000 --ld-window 99999 --ld-window-r2 0.6 --out sig_snps

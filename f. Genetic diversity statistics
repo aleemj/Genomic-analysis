@@ -3,6 +3,7 @@
 #Tajima D
 #Fst
 #LD decay
+#heterozigosity
 #reccomend using LD pruned file to reduce file size and calculations
 #adjust window sizes, steps accordingly
 
@@ -34,3 +35,7 @@ cd $genotype_file_diirectory
 mkdir /lddecay
 cd lddecay
 PopLDdecay -InVCF $input.vcf -OutStat $output.result -SubPop sample_names.txt
+
+#5. Heterozigosity
+--het
+

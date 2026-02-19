@@ -56,6 +56,13 @@ tree <- nj(dist_matrix)
 # save the tree to Newick format file
 write.tree(tree, file="output_tree.nwk") 
 
-#3a. IQTREE
+#3a. MEGA11 or 12
+#Convert vcf to phy
 https://github.com/edgardomortiz/vcf2phylip
-http://www.iqtree.org/
+#Convert phy to meg (PHYLIP)
+MEGA 12 GUI
+https://www.megasoftware.net/ 
+#Create mao file in MEGA 12
+#Run phylogenetic bootstrap in MEGA 12 CC (command line)
+megacc -a infer_ML_nucleotide.mao -d 204_Arugula_Merged_snps_geno_maf_LD.min4.meg
+

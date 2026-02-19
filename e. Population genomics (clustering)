@@ -59,26 +59,3 @@ write.tree(tree, file="output_tree.nwk")
 #3a. IQTREE
 https://github.com/edgardomortiz/vcf2phylip
 http://www.iqtree.org/
-
-#3b. MEGA12 use this!!!
-	Analysis                                = Phylogeny Reconstruction
-	Scope                                   = All Selected Taxa
-	Statistical Method                      = Neighbor-joining
-	Test of Phylogeny                       = Bootstrap method
-	Bootstrap Replicates                    = 1000
-	Substitutions Type                      = Nucleotide
-	Model/Method                            = Maximum Composite Likelihood
-	Substitutions to Include                = d: Transitions + Transversions
-	Rates among Sites                       = Uniform Rates
-	Pattern among Lineages                  = Same (Homogeneous)
-	Gaps/Missing Data                       = Pairwise deletion
-	Number of Threads                       = 16
-	Has Time Limit                          = False
-	Maximum Execution Time                  = -1
-	datatype                                = snNucleotide
-	containsCodingNuc                       = False
-	MissingBaseSymbol                       = ?
-	IdenticalBaseSymbol                     = .
-	GapSymbol                               = -
-	Labelled Sites                          = All Sites
-

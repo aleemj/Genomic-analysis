@@ -14,6 +14,9 @@ grep -h CV log*.out
 #Notes:
 #1. For multi-threading: append the flag -jN, where N is the thread number, ncpus must be adjusted accordingly to allow for multithreading.
 
+#1A. Plotting Admixture Results
+https://github.com/speciationgenomics/scripts/blob/master/plotADMIXTURE.r 
+
 ################################################################
 
 #2. PCA clustering 

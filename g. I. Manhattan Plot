@@ -1,1 +1,77 @@
+library(qqman)
+library(data.table)
+library(dplyr)
+
+# Set working directory
+setwd("/Users/adrianlee/Desktop/Arugula_Genetics/GWAS/195_output")
+
+# Get all association files
+assoc_files <- list.files(pattern = "\\.assoc\\.txt$")
+
+# Function to calculate genomic inflation factor lambda
+inflation <- function(ps) {
+  chisq <- qchisq(1 - ps, df = 1)
+  lambda <- median(chisq, na.rm = TRUE) / qchisq(0.5, df = 1)
+  return(lambda)
+}
+
+# Loop over each GWAS result file
+for (file in assoc_files) {
+  
+  Trait <- sub("\\.assoc\\.txt$", "", file)
+  data <- fread(file, header = TRUE)
+  
+  data <- data[!is.na(p_score)]
+  data$p_score[data$p_score == 0] <- 1e-300
+  
+  snps <- nrow(data)
+  
+  GWAS_Bonn_corr_threshold <- -log10(0.05 / snps)
+  Suggested_threshold <- -log10(1e-5)
+  
+  filtered_scaffolds <- data[chr < 12]
+  filtered_scaffolds <- filtered_scaffolds %>% arrange(p_score)
+  
+  lambda <- round(inflation(filtered_scaffolds$p_score), 2)
+  
+  jpeg(
+    paste0(Trait, "_MLM_5PC_kinship_ManhattanPlot.jpg"),
+    width = 14, height = 6, units = "in", res = 300
+  )
+  
+  manhattan(
+    filtered_scaffolds,
+    chr = "chr",
+    bp = "ps",
+    snp = "rs",
+    p = "p_score",
+    col = c("blue", "goldenrod"),
+    annotateTop = TRUE,
+    genomewideline = GWAS_Bonn_corr_threshold,
+    suggestiveline = Suggested_threshold,
+    ylim = c(0, 11),
+    main = paste0("MLM for Arugula (", Trait, ")")
+  )
+  
+  dev.off()
+  
+  jpeg(
+    paste0(Trait, "_MLM_5PC_kinship_QQPlot.jpg"),
+    width = 6, height = 6, units = "in", res = 300
+  )
+  
+  qq(
+    filtered_scaffolds$p_score,
+    main = paste0("QQ Plot for ", Trait, " (λ=", lambda, ")"),
+    col = "blue",
+    cex = 2,
+    pch = 1
+  )
+  
+  dev.off()
+  
+  message("Processed: ", Trait)
+}
+
+message("All traits processed successfully!")
 

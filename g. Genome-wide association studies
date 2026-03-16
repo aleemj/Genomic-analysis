@@ -39,5 +39,51 @@ gemma -bfile $input  -bslmm [num] -o $output
 #Error 1: Enforce failed for number of analyzed individuals equals 0. in src/param.cpp at line 2073 in ProcessCvtPhen
 #Solution 1: ensure .fam file has phenotype column filled in - "-9" or "NA" will result in this error.
 
+
+
+#############LOOP JOB FOR RUNNING DIFFERENT TRAITS###############
+
+#PBS -q normal
+#PBS -l select=1:ncpus=1:mem=256G
+#PBS -l walltime=96:00:00
+#PBS -N gwas
+#PBS -P Personal
+
+cd /home/users/nus/e1583429/scratch/esativa_analysis/GWAS/
+# Define your file prefixes
+BFILE=<insert bam file prefix>
+KINSHIP=<insert kinship file>
+TRAIT_FILE=<insert list of trait names in order>
+EIGEN="insert PCA results"
+
+# Initialize a counter for the phenotype column index
+# GEMMA -n 1 corresponds to the 6th column in the .fam file
+INDEX=1
+
+# Read the trait names file line by line
+while IFS= read -r TRAIT_NAME || [[ -n "$TRAIT_NAME" ]]; do
+    # Skip empty lines if any
+    if [ -z "$TRAIT_NAME" ]; then continue; fi
+
+    echo "-------------------------------------------------------"
+    echo "Running GWAS for Trait: $TRAIT_NAME (Column Index: $INDEX)"
+    echo "-------------------------------------------------------"
+
+    # Execute GEMMA
+    # -lmm 4 runs Wald, Likelihood Ratio, and Score tests
+    /home/users/nus/e1583429/gemma -bfile $BFILE \
+          -k $KINSHIP \
+          -lmm 4 \
+          -c $EIGEN \
+          -n $INDEX \
+          -o "$TRAIT_NAME"
+
+    # Increment the index for the next trait column
+    ((INDEX++))
+
+done < "$TRAIT_FILE"
+
+echo "All GWAS runs complete. Check the /output folder."
+
 #Error 2: Cannot write output file
 #Solution 2: Ensure output file name has no directory, cd into directory where output file destination is desired instead. 

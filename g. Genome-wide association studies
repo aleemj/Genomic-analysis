@@ -51,7 +51,7 @@ gemma -bfile $input  -bslmm [num] -o $output
 
 cd /home/users/nus/e1583429/scratch/esativa_analysis/GWAS/
 # Define your file prefixes
-BFILE=<insert bam file prefix>
+BFILE=<insert bed file prefix>
 KINSHIP=<insert kinship file>
 TRAIT_FILE=<insert list of trait names in order>
 EIGEN="insert PCA results"

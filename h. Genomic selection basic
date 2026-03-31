@@ -31,7 +31,8 @@ Y <- read.csv("/Users/adrianlee/Desktop/Arugula_Genetics/GS/arugula_766.csv", he
 output_files_path <- "/Users/adrianlee/Desktop/Arugula_Genetics/GS/"
 
 # Select the phenotype column by name
-selected_phenotype <- "Totalfreshweight"  # Change this to the desired phenotype name
+selected_phenotype <- "logBLUE_correct"  # Change this to the desired phenotype name
+
 y <- Y[[selected_phenotype]]
 
 # Make the "ID" column the row names for the phenotype data
@@ -55,7 +56,7 @@ MODELS <- c(1, 2, 3, 4)
 percTST <- 0.3
 
 # Number of replicates
-m <- 5
+m <- 200
 
 #==================================================
 
@@ -111,9 +112,32 @@ for (mod in seq_along(models)) {
 # Summarize and plot the results
 summary_stats <- round(rbind(Mean = apply(OUT, 2, mean), SD = apply(OUT, 2, sd)), 4)
 print(summary_stats)
+summary_stats <- data.frame(
+  Model = colnames(OUT),
+  MeanAccuracy = colMeans(OUT, na.rm = TRUE),
+  SDAccuracy   = apply(OUT, 2, sd, na.rm = TRUE)
+)
 
 # Save the boxplot as a PNG file
 png_filename <- paste0("GS_model_comparison_", selected_phenotype, "_boxplot.png")
 png(filename = png_filename, width = 800, height = 600)
-boxplot(OUT, ylab = "Accuracy", xlab = "Model", main = paste("GS model comparison of", selected_phenotype, "prediction accuracy across ", m, " iterations."))
+boxplot(OUT, ylab = "Accuracy", xlab = "Model", ylim = c(0, 1), main = paste("GS model comparison of", selected_phenotype, "prediction accuracy across ", m, " iterations."))
+dev.off()
+
+# -----------------------------
+# Bar chart with SD
+# Convert to proper data frame for barplot
+png(paste0("GS_barplot_", selected_phenotype, ".png"), width = 800, height = 600)
+bar_centers <- barplot(summary_stats$MeanAccuracy,
+                       names.arg = summary_stats$Model,
+                       ylim = c(0, 1),
+                       col = "skyblue",
+                       ylab = "Mean Accuracy",
+                       main = paste("Mean Accuracy with SD for", selected_phenotype))
+# Add error bars
+arrows(x0 = bar_centers,
+       y0 = summary_stats$MeanAccuracy - summary_stats$SDAccuracy,
+       x1 = bar_centers,
+       y1 = summary_stats$MeanAccuracy + summary_stats$SDAccuracy,
+       angle = 90, code = 3, length = 0.1)
 dev.off()

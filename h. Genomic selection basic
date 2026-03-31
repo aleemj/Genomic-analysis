@@ -26,15 +26,16 @@ library(dplyr)
 #==================================================
 
 # Load data
-G <- as.matrix(fread("C:/Users/Adrian/Documents/Genomic selection/Input/plink_grm_final_05.rel"))
-Y <- read.table("C:/Users/Adrian/Documents/Genomic selection/Input/final_05.pheno", header = TRUE)
+G <- as.matrix(fread("/Users/adrianlee/Desktop/Arugula_Genetics/GS/766_arugula_GRM.rel"))
+Y <- read.csv("/Users/adrianlee/Desktop/Arugula_Genetics/GS/arugula_766.csv", header = TRUE)
+output_files_path <- "/Users/adrianlee/Desktop/Arugula_Genetics/GS/"
 
 # Select the phenotype column by name
-selected_phenotype <- "Leaf_Area"  # Change this to the desired phenotype name
+selected_phenotype <- "Totalfreshweight"  # Change this to the desired phenotype name
 y <- Y[[selected_phenotype]]
 
 # Make the "ID" column the row names for the phenotype data
-rownames(Y) <- Y$ID
+rownames(Y) <- Y$Sample_ID
 Y <- Y[, -1]  # Remove the "ID" column
 
 #==================================================

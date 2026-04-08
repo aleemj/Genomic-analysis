@@ -12,6 +12,7 @@ plink --vcf $input --extract $snps_to_keep.txt --keep-allele-order --allow-extra
 
 #3. filter genoytpe file according to a list of chromosomes
 plink --vcf input.vcf.gz \
+      --keep-allele-order --allow-extra-chr -allow-no-sex --double-id \
       --chr scaffold_1,scaffold_2, scaffold_3, scaffold_4, scaffold_5, scaffold_6, scaffold_7, scaffold_8, scaffold_9, scaffold_10, scaffold_11  \
       --recode vcf \
       --out filtered_scaffolds

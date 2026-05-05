@@ -1,3 +1,5 @@
+#Candidate gene identification and analysis from GWAS (GEMMA) results, using $BASH
+
 #1. Perform GWAS (GEMMA)
  
 #2. Reformat gemma output

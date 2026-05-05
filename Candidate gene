@@ -1,0 +1,101 @@
+#1. Perform GWAS (GEMMA)
+ 
+#2. Reformat gemma output
+awk 'NR==1 {print "SNP\tP"} NR>1 {print $2"\t"$10}' adj_TFW.assoc.txt > adj_TFW.assoc_for_clump.txt
+
+#3. Plink clumping
+/home/users/nus/e1583429/plink \
+  --allow-extra-chr \
+  --allow-no-sex \
+  --chr-set 95 \
+  --double-id \
+  --keep-allele-order \
+  --bfile /home/users/nus/e1583429/scratch/esativa_analysis/GWAS/Yield_Candidate_Gene/766_Arugula_snps_geno_maf \
+  --clump /home/users/nus/e1583429/scratch/esativa_analysis/GWAS/Yield_Candidate_Gene/Adjusted_phenotype/adj_TFW.assoc_for_clump.txt \
+  --clump-p1 1e-5 \
+  --clump-p2 1e-2 \
+  --clump-r2 0.6 \
+  --clump-kb 500 \
+  --out clumped_results
+  
+#4. Extract clump snp names as lead_snps.txt before proceeding
+
+#5. Find all LD SNPs of each lead snp
+for snp in $(cat lead_snps.txt); do
+  /home/users/nus/e1583429/plink \
+    --bfile /home/users/nus/e1583429/scratch/esativa_analysis/GWAS/Yield_Candidate_Gene/766_Arugula_snps_geno_maf \
+	--keep-allele-order --allow-extra-chr --chr-set 95 --allow-no-sex --double-id \
+	--ld-snp $snp \
+    --ld-window-kb 500 \
+    --ld-window 99999 \
+    --ld-window-r2 0 \
+    --r2 \
+    --out LD_$snp
+done
+
+#6. Compile all LD SNPs, filter at r2 = 0.6
+awk 'NR>1 && $7 >= 0.6 {print $1, $5, $5, $3}' LD_*.ld | \
+sort -k1,1 -k2,2n > all_ld_snps.tmp
+
+#7. get LD regions for each lead SNP
+awk '
+{
+  key=$4
+  chr[key]=$1
+  if(!(key in min) || $2 < min[key]) min[key]=$2
+  if(!(key in max) || $2 > max[key]) max[key]=$2
+}
+END{
+  for(k in min){
+    print chr[k], min[k], max[k], k
+  }
+}
+' all_ld_snps.tmp > ld_regions.bed
+
+#8. remove last column from bed file
+
+#9. Extract genes from regions
+module load bedtools
+bedtools intersect -a /home/users/nus/e1583429/scratch/esativa_WGS_alignment/ref/Arugula_ref_gen_V2/genes.gtf -b ld_regions.bed -wa > candidate_genes.gff
+
+#10.manually extract gene ids into file candidate_gene_ids.txt
+
+#11. extract gene sequences
+awk '
+BEGIN {sss
+  while ((getline k < "candidate_gene_ids.txt") > 0) ids[k]=1
+}
+/^>/ {
+  keep=0
+  for (id in ids) {
+    if ($0 ~ ">" id "\\.t") {
+      keep=1
+      break
+    }
+  }
+}
+keep {print}
+' /home/users/nus/e1583429/scratch/esativa_WGS_alignment/ref/Arugula_ref_gen_V2/braker.aa > candidate_proteins.fa
+
+#12. BLASTP
+module load ncbi-blast/2.13.0
+
+#download from uniprotKB
+#run once enough
+makeblastdb \
+  -in arabidopsis_proteins.fa \
+  -dbtype prot \
+  -out arabidopsis_db
+
+#blast reference genome or other file
+blastp \
+  -query candidate_proteins.fa \
+  -db /home/users/nus/e1583429/scratch/esativa_WGS_alignment/ref/Arugula_ref_gen_V2/Blast/arabidopsis_db \
+  -evalue 1e-5 \
+  -max_target_seqs 1 \
+  -outfmt "6 qseqid sseqid pident length evalue bitscore stitle" \
+  -out blast_results.tsv
+
+#13. convert to TAIR ID for enrichment and annotation
+https://www.uniprot.org/id-mapping
+UniProtKB_AC-ID → Araport

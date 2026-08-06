@@ -1,0 +1,86 @@
+#1. Basic Variant Statistics
+bcftools index Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz
+bcftools index Arugula_Full_Cohort_Joint.INDEL.PASS.vcf.gz
+
+bcftools stats Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz \
+> SNP.stats.txt
+
+bcftools stats Arugula_Full_Cohort_Joint.INDEL.PASS.vcf.gz \
+> INDEL.stats.txt
+
+plot-vcfstats \
+-p SNP_stats \
+SNP.stats.txt
+
+plot-vcfstats \
+-p INDEL_stats \
+INDEL.stats.txt
+
+#2. SNP Statistics
+#Transition / Transversion ratio
+grep TSTV SNP.stats.txt
+
+#3. Variant Counts
+#SNP
+bcftools view -H Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz | wc -l
+#Indels
+bcftools view -H Arugula_Full_Cohort_Joint.INDEL.PASS.vcf.gz | wc -l
+
+#4. Missingness
+#per variant
+vcftools --gzvcf Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz --missing-site --out SNP_missing
+#Per individual
+vcftools --gzvcf Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz --missing-indv --out SNP_individual_missing
+
+#5. Minor Allele Frequency
+vcftools --gzvcf Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz --freq --out SNP_MAF
+
+#6. Allele Frequency Spectrum
+vcftools --gzvcf Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz --freq2 --out SNP_AF
+
+#7. Heterozygosity
+vcftools --gzvcf Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz --het --out SNP_HET
+
+#8. SNP Density
+#Every 100 kb
+vcftools --gzvcf Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz --SNPdensity 100000 --out SNP_density
+
+#9. Indel Size Distribution
+bcftools query -f '%REF\t%ALT\n' Arugula_Full_Cohort_Joint.INDEL.PASS.vcf.gz | awk '{print length($2)-length($1)}' > indel_sizes.txt
+
+#10. Depth Distribution
+bcftools query -f '%DP\n' Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz > depth.txt
+
+#11. QUAL Distribution
+bcftools query -f '%QUAL\n' Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz > quality.txt
+
+#12. Functional Annotation
+#using SnpEff
+java -jar snpEff.jar \ genome_name \ Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz \ > annotated.vcf
+java -jar SnpSift.jar extractFields annotated.vcf ANN > annotations.txt
+
+#13. Variant Type Counts
+bcftools stats Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz | grep "^SN"
+
+#14. Sample Statistics
+bcftools query -l Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz
+#Count
+bcftools query -l Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz | wc -l
+
+#15. Chromosome Variant Counts
+bcftools index -s Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz
+
+#16. LD Decay
+plink --vcf Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz --allow-extra-chr --r2 --ld-window-kb 500 --ld-window 99999 --ld-window-r2 0 --out LD
+
+#17. Nucleotide Diversity
+vcftools --gzvcf Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz --window-pi 100000 --out Pi
+
+#18. Tajima's D
+vcftools --gzvcf Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz --TajimaD 100000 --out Tajima
+
+#19. PCA
+plink --vcf Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz --pca --allow-extra-chr --out PCA
+
+#20. IBS Matrix
+plink --vcf Arugula_Diplotaxis_Joint.SNP.PASS.vcf.gz --distance square --allow-extra-chr --out IBS
